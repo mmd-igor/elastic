@@ -12,8 +12,33 @@
 </head>
 
 <body>
+    <?php
+    if (count($_FILES) > 0) {
+        $uploaddir = '/var/www/data/';
+        $uploadfile = $uploaddir . basename($_FILES['userfile']['name']);
+
+        if (!move_uploaded_file($_FILES['userfile']['tmp_name'], $uploadfile)) {
+            die("Possible file upload attack!\n");
+        }
+    } else { ?>
+        <div class="row">
+            <div class="col-4 d-flex justify-content-center">
+                <form enctype="multipart/form-data" action="/" method="POST">
+                    <label for="formFile" class="form-label">Закачайте сюда файл спецификации</label>
+                    <div class="input-group mb-3">
+                        <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" />
+                        <!-- <input class="form-control" type="file" id="formFile" name="userfile" /> -->
+                        <input type="submit" class="btn btn-outline-secondary" value="Отправить" />
+                    </div>
+                </form>
+            </div>
+        </div>
 
     <?php
+        echo '</body></html>';
+        exit;
+    }
+
     require 'vendor/autoload.php';
     require 'elastic.php';
 
@@ -22,7 +47,17 @@
 
     $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
     $reader->setReadDataOnly(TRUE);
-    $spreadsheet = $reader->load("data/spec.xlsx");
+    try {
+        $spreadsheet = $reader->load($uploadfile);
+    } catch (\Throwable $th) { ?>
+        <div class="alert alert-danger" role="alert">
+            <span>похоже, это не тот файл, что нам нужен</span>
+            <button type="button" class="btn btn-primary" onclick="location.href='/'">Назад</button>
+        </div>
+    <?php
+        unlink($uploadfile);
+        die('');
+    }
     $elastic = new Elastic();
 
     $worksheet = $spreadsheet->getActiveSheet();
@@ -33,8 +68,8 @@
     }
 
     // Get the highest row number and column letter referenced in the worksheet
-    $highestRow = $worksheet->getHighestRow(); // 
-    $highestColumn = $worksheet->getHighestColumn(); // 
+    $highestRow = $worksheet->getHighestRow(); //
+    $highestColumn = $worksheet->getHighestColumn(); //
     // Increment the highest column letter
     $highestColumn++;
     ?>
@@ -72,7 +107,7 @@
                 else if ($score < 100) $class = 'danger';
                 else if ($score < 200) $class = 'warning';
                 else $class = 'success';
-                
+
                 #
                 printf('<tr class="table-%s">', $class);
                 echo $rowstr;
@@ -81,6 +116,10 @@
                 # структура таблицы
                 if ($row == 1) echo '</thead><tbody class="table-group-divider">';
             }
+            unset($worksheet);
+            unset($spreadsheet);
+            unset($reader);
+            unlink($uploadfile);
             ?>
             </tbody>
     </table>
