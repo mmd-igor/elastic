@@ -21,13 +21,12 @@
             die("Possible file upload attack!\n");
         }
     } else { ?>
-        <div class="row">
+        <div class="row" id="uploader">
             <div class="col-4 d-flex justify-content-center">
                 <form enctype="multipart/form-data" action="/" method="POST">
                     <label for="formFile" class="form-label">Закачайте сюда файл спецификации</label>
                     <div class="input-group mb-3">
                         <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" />
-                        <!-- <input class="form-control" type="file" id="formFile" name="userfile" /> -->
                         <input type="submit" class="btn btn-outline-secondary" value="Отправить" />
                     </div>
                 </form>
@@ -87,18 +86,21 @@
                 for ($col = 'A'; $col != $highestColumn; ++$col) {
                     $rowstr .= sprintf('<td>%s</td>', $worksheet->getCell($col . $row)->getValue());
                 }
-
+                # добавить заголовок для полей справочника
+                if ($row == 1) {
+                    $rowstr .= '<td>Score</td><td>Код материала</td><td>Материал из справочника</td>';
+                }
                 # теперь ищем соответствие в справочнике
                 $score = 0;
                 if ($row >= 2 && $ok > 1) { # только для материалов
                     $ref = $elastic->getRecord($worksheet->getCell('E' . $row)->getValue(), $worksheet->getCell('C' . $row)->getValue(), $worksheet->getCell('B' . $row)->getValue());
                     if ($ref) { # есть что-то?
                         $score =  $ref['_meta']['score'];
-                        $rowstr .= sprintf('<td class="" align="right">%.2f</td><td>%s</td>', $score, $ref['material']['raw']);
+                        $rowstr .= sprintf('<td class="fw-bold text-end">%.2f</td><td class="text-nowrap">%s</td><td>%s</td>', $score, $ref['mcode']['raw'], $ref['material']['raw']);
                     } else
-                        $rowstr .= '<td colspan="2" class="red">не найдено</td>';
+                        $rowstr .= '<td colspan="3" class="red">не найдено</td>';
                 } else {
-                    $rowstr .= '<td colspan="2"></td>';
+                    $rowstr .= '<td colspan="3"></td>';
                 }
 
                 # боевая раскраска
