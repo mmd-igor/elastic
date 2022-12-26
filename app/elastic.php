@@ -43,7 +43,7 @@ class Elastic extends Client
         else return null;
     }
 
-    private function prepareKey($key): String
+    private function prepareKey($key): String 
     {
         if ($key == null) return '';
         //
