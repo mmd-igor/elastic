@@ -69,6 +69,7 @@
     <table class="table table-hover table-sm">
         <thead class="table-dark">
             <tr>
+                <td>#</td>
                 <?php
                 $header = $spec->getHeader();
                 foreach ($header as $h) printf('<td>%s</td>', $h);
@@ -88,7 +89,8 @@
         </thead>
         <tbody>
             <?php
-            for ($row = 1; $row < $spec->count(); ++$row) {
+            for ($row = 1; $row < $spec->count(); ++$row) {              
+
                 $item = $spec->getItem($row);
 
                 $ok = false;
@@ -98,13 +100,13 @@
                 $material = @$elastic->getRecord($item['E'], $item['C'], $item['B'], 'level-engine');
                 $work = @$elastic->getRecord(null, ($material ? $material['vcode']['raw'] : null), $item['B'], 'works');
 
-                $rowstr = ''; $notes = [];
+                $rowstr = sprintf('<td>%s</td>', $row); $notes = [];
                 foreach ($header as $l => $h) {
                     $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));
                 }
                 if ($work) {
                     $s = $work['_meta']['score'];
-                    if ($s < 7) $c = 'danger'; else if ($s < 10) $c = 'warning'; else $c = 'primary';
+                    if ($s < 7) $c = 'danger'; else if ($s < 10) $c = 'warning'; else $c = 'success';
                     foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
                     $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
                 }
@@ -113,7 +115,7 @@
                 //
                 if ($material) {
                     $s = $material['_meta']['score'];
-                    if ($s < 100) $c = 'danger'; else if ($s < 200) $c = 'warning'; else $c = 'primary';
+                    if ($s < 100) $c = 'danger'; else if ($s < 200) $c = 'warning'; else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
                     $notes[] = sprintf('m%.0f/%s', $material['_meta']['score'], $material['_meta']['method']);
                 }
