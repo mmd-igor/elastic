@@ -13,6 +13,7 @@
 
 <body>
     <?php
+    //
     if (count($_FILES) > 0) {
         $uploaddir = '/var/www/data/';
         $uploadfile = $uploaddir . basename($_FILES['userfile']['name']);
@@ -20,13 +21,17 @@
         if (!move_uploaded_file($_FILES['userfile']['tmp_name'], $uploadfile)) {
             die("Possible file upload attack!\n");
         }
-    } else { ?>
+        // файл закачан, он в $uploadfile
+    } else {
+        // upload html-form
+    ?>
         <div class="row" id="uploader">
-            <div class="col-4 d-flex justify-content-center">
+            <div class="d-flex justify-content-center">
                 <form enctype="multipart/form-data" action="/" method="POST">
                     <label for="formFile" class="form-label">Закачайте сюда файл спецификации</label>
                     <div class="input-group mb-3">
-                        <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" />
+                        <input class="form-control" type="file" id="formFile" name="userfile" />
+                        <!-- <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" /> -->
                         <input type="submit" class="btn btn-outline-secondary" value="Отправить" />
                     </div>
                 </form>
@@ -40,14 +45,12 @@
 
     require 'vendor/autoload.php';
     require 'elastic.php';
+    require 'specification.php';
 
-    use PhpOffice\PhpSpreadsheet\Spreadsheet;
-    use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
-
-    $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
-    $reader->setReadDataOnly(TRUE);
     try {
-        $spreadsheet = $reader->load($uploadfile);
+        // загрузка спецификации
+        $spec = new Specification($uploadfile);
+        //
     } catch (\Throwable $th) { ?>
         <div class="alert alert-danger" role="alert">
             <span>похоже, это не тот файл, что нам нужен</span>
@@ -57,40 +60,73 @@
         unlink($uploadfile);
         die('');
     }
+
+    // движок эластика
     $elastic = new Elastic();
 
-    $worksheet = $spreadsheet->getActiveSheet();
-
-    function getCell($worksheet, $col, $row)
-    {
-        return $worksheet->getCell($col . $row)->getValue();
-    }
-
-    // Get the highest row number and column letter referenced in the worksheet
-    $highestRow = $worksheet->getHighestRow(); //
-    $highestColumn = $worksheet->getHighestColumn(); //
-    // Increment the highest column letter
-    $highestColumn++;
     ?>
+    <h1>Ведомость объема работ (ВОР)</h1>
     <table class="table table-hover table-sm">
         <thead class="table-dark">
-            <?php for ($row = 1; $row <= $highestRow; ++$row) {
-                # ок - количество заполненных полей в строке спецификации
-                $ok = 0;
-                for ($col = 'A'; $col != $highestColumn; ++$col) if (getCell($worksheet, $col, $row) != null) $ok++;
+            <tr>
+                <?php
+                $header = $spec->getHeader();
+                foreach ($header as $h) printf('<td>%s</td>', $h);
+                ?>
+                <td>Код статьи затрат</td>
+                <td>Код работы</td>
+                <td>Наименование работы</td>
+                <td>Код группы материалов</td>
+                <td>Наименование группы материалов</td>
+                <td>Код материала</td>
+                <td>Наименование материала</td>
+                <td>Примечание</td>
+                <td>Ед.изм</td>
+                <td>Объем</td>
+            </tr>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            for ($row = 1; $row < $spec->count(); ++$row) {
+                $item = $spec->getItem($row);
 
-                if ($ok == 0) continue; # не надо пустых строк
+                $ok = false;
+                foreach (['B', 'C', 'E'] as $c) $ok = $ok || array_key_exists($c, $item);
+                if (!$ok) continue;
 
-                # сначала перетащим все поля из спецификации
+                $material = @$elastic->getRecord($item['E'], $item['C'], $item['B'], 'level-engine');
+                $work = @$elastic->getRecord(null, ($material ? $material['vcode']['raw'] : null), $item['B'], 'works');
+
+                $rowstr = ''; $notes = [];
+                foreach ($header as $l => $h) {
+                    $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));
+                }
+                if ($work) {
+                    $s = $work['_meta']['score'];
+                    if ($s < 7) $c = 'danger'; else if ($s < 10) $c = 'warning'; else $c = 'primary';
+                    foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
+                    $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
+                }
+                else
+                    $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
+                //
+                if ($material) {
+                    $s = $material['_meta']['score'];
+                    if ($s < 100) $c = 'danger'; else if ($s < 200) $c = 'warning'; else $c = 'primary';
+                    foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
+                    $notes[] = sprintf('m%.0f/%s', $material['_meta']['score'], $material['_meta']['method']);
+                }
+                else
+                    $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
+                //
+                $rowstr .= sprintf('<td>%s</td>', implode(', ', $notes));
+                $rowstr .= '<td colspan="2"></td>';
+                printf("<tr>%s</tr>\n", $rowstr);
+            }
+            /*
                 $rowstr = '';
-                for ($col = 'A'; $col != $highestColumn; ++$col) {
-                    $rowstr .= sprintf('<td>%s</td>', $worksheet->getCell($col . $row)->getValue());
-                }
-                # добавить заголовок для полей справочника
-                if ($row == 1) {
-                    $rowstr .= '<td>Score</td><td>Код материала</td><td>Материал из справочника</td>';
-                }
-                # теперь ищем соответствие в справочнике
+                foreach($header as $hdr) $rowstr .= sprintf('<td>%s</td>', $hdr);
                 $score = 0;
                 if ($row >= 2 && $ok > 1) { # только для материалов
                     $ref = $elastic->getRecord($worksheet->getCell('E' . $row)->getValue(), $worksheet->getCell('C' . $row)->getValue(), $worksheet->getCell('B' . $row)->getValue());
@@ -117,13 +153,14 @@
 
                 # структура таблицы
                 if ($row == 1) echo '</thead><tbody class="table-group-divider">';
-            }
+                */
+
             unset($worksheet);
             unset($spreadsheet);
             unset($reader);
             unlink($uploadfile);
             ?>
-            </tbody>
+        </tbody>
     </table>
 
 </body>
