@@ -48,6 +48,27 @@ class Elastic extends Client
         else return null;
     }
 
+    public function EsSearch($what)
+    {
+        // Elasticsearch query
+        $searchParams = new Schema\EsSearchParams();
+        $searchParams->query = [
+            'match' => [
+                'excode' => '05.04.05'
+            ]
+        ];
+
+        // This is the Elasticsearch token API (Bearer)
+        $elasticsearchApiKey = ELASTIC_APPSEARCH_TOKEN;
+
+        $result = $this->search->searchEsSearch(
+            (new Request\SearchEsSearch('works', '', $searchParams))
+                ->setAuthorization($elasticsearchApiKey)
+        );
+
+        printf('<pre>%s</pre>', print_r($result->asArray(), true)); // Elasticsearch result in ['hits']['hits']
+    }
+
     private function prepareKey($key): String
     {
         if ($key == null) return '';
@@ -70,7 +91,7 @@ class Elastic extends Client
     {
         $res = [];
         $r = [];
-/*        $keys = [
+        /*        $keys = [
             '*' => ['key' => $excode . ' ' . $m_vcode . ' ' . $this->clearName($name)],
             'C' => ['key' => $excode . ' ' . $m_vcode],
         ];
@@ -82,10 +103,10 @@ class Elastic extends Client
             $r = $this->search($key, 'works', $excode == '');
             if ($r) {
                 if ($excode != '') {
-                    foreach($r as $i) {
+                    foreach ($r as $i) {
                         if (strpos($i['excode']['raw'], $excode) !== false) {
                             $i['_meta']['method'] = '*';
-                            return($i);
+                            return ($i);
                         }
                     }
                 } else {

@@ -4,7 +4,6 @@ namespace Level\VOR;
 
 require 'vendor/autoload.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -16,6 +15,12 @@ require 'vendor/autoload.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <link href="/assets/styles.css?ver=1" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script>
+        function saveToExcel() {
+            let t = document.getElementById('mainTable');
+            document.getElementById('tableForm').value = t.outerHTML;
+        }
+    </script>
 </head>
 
 <body>
@@ -76,10 +81,11 @@ require 'vendor/autoload.php';
 
     // движок эластика
     $elastic = new Elastic();
+    //$elastic->EsSearch('');     exit;
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
-    <table class="table table-hover table-sm">
+    <table class="table table-hover table-sm" id="mainTable">
         <thead class="table-dark">
             <tr>
                 <td>#</td>
@@ -155,7 +161,12 @@ require 'vendor/autoload.php';
             ?>
         </tbody>
     </table>
-
+    <div class="mx-auto col-1 my-3">
+        <form enctype="multipart/form-data" action="/saveAs.php" method="POST" onsubmit="saveToExcel()">
+            <input type="hidden" name="table" id="tableForm" />
+            <button type="submit" class="btn btn-primary">Save as Excel...</button>
+        </form>
+    </div>
 </body>
 
 </html>
