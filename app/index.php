@@ -1,3 +1,5 @@
+<?php //phpinfo(); exit; 
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -30,9 +32,13 @@
                 <form enctype="multipart/form-data" action="/" method="POST">
                     <label for="formFile" class="form-label">Закачайте сюда файл спецификации</label>
                     <div class="input-group mb-3">
-                        <input class="form-control" type="file" id="formFile" name="userfile" />
-                        <!-- <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" /> -->
+                        <!-- <input class="form-control" type="file" id="formFile" name="userfile" /> -->
+                        <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" />
                         <input type="submit" class="btn btn-outline-secondary" value="Отправить" />
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="multiLine" value="true" name="multiLine">
+                        <label class="form-check-label" for="multiLine">Многострочный парсер</label>
                     </div>
                 </form>
             </div>
@@ -47,6 +53,8 @@
     require 'elastic.php';
     require 'specification.php';
 
+    //echo '<pre>';     print_r($_POST);     echo '</pre>';     exit;
+
     try {
         // загрузка спецификации
         $spec = new Specification($uploadfile);
@@ -60,6 +68,9 @@
         unlink($uploadfile);
         die('');
     }
+
+    if (array_key_exists('multiLine', $_POST)) $spec->checkMultiRow();
+    //$spec->dump();     exit;
 
     // движок эластика
     $elastic = new Elastic();
@@ -89,37 +100,46 @@
         </thead>
         <tbody>
             <?php
-            for ($row = 1; $row < $spec->count(); ++$row) {              
+            for ($row = 1; $row < $spec->count(); ++$row) {
 
                 $item = $spec->getItem($row);
 
                 $ok = false;
-                foreach (['B', 'C', 'E'] as $c) $ok = $ok || array_key_exists($c, $item);
-                if (!$ok) continue;
+                foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen($item[$c]) > 3);
+                if ($ok) $ok = count($item) > 1;
+                if (!$ok) {
+                    print('<tr class="table-primary">');
+                    foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
+                    print('<td colspan="11"></td><tr>');
+                    continue;
+                }
 
                 $material = @$elastic->getRecord($item['E'], $item['C'], $item['B'], 'level-engine');
                 $work = @$elastic->getRecord(null, ($material ? $material['vcode']['raw'] : null), $item['B'], 'works');
 
-                $rowstr = sprintf('<td>%s</td>', $row); $notes = [];
+                $rowstr = sprintf('<td>%s</td>', $row);
+                $notes = [];
                 foreach ($header as $l => $h) {
                     $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));
                 }
                 if ($work) {
                     $s = $work['_meta']['score'];
-                    if ($s < 7) $c = 'danger'; else if ($s < 10) $c = 'warning'; else $c = 'success';
+                    if ($s < 7) $c = 'danger';
+                    else if ($s < 10) $c = 'warning';
+                    else $c = 'success';
                     foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
                     $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
-                }
-                else
+                } else
                     $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
                 //
                 if ($material) {
                     $s = $material['_meta']['score'];
-                    if ($s < 100) $c = 'danger'; else if ($s < 200) $c = 'warning'; else $c = 'success';
+                    if ($s < 100) $c = 'danger';
+                    else if ($s < 200) $c = 'warning';
+                    else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
                     $notes[] = sprintf('m%.0f/%s', $material['_meta']['score'], $material['_meta']['method']);
-                }
-                else
+                } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //
                 $rowstr .= sprintf('<td>%s</td>', implode(', ', $notes));

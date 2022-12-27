@@ -3,6 +3,23 @@
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
+function checkState($inrow, $row): bool
+{
+    return array_key_exists('A', $row) != $inrow && count($row) > 1;
+}
+
+function array_merge_grow(array $a1, array $a2): array
+{
+    $res = $a1;
+    foreach ($a2 as $i => $v) {
+        if (array_key_exists($i, $res))
+            $res[$i] .= ' ' . $v;
+        else
+            $res[$i] = $v;
+    }
+    return $res;
+}
+
 class Specification
 {
     public $items = [];
@@ -12,33 +29,39 @@ class Specification
         unset($this->items);
     }
 
-    private function checkMultiRow()
+    public function checkMultiRow()
     {
-        /*
-        $res = [];
         $cnt = count($this->items);
         if ($cnt <= 1) return;
         //
+        $res = [];
+        $newrow = [];
+        $inrow = false;
+        $newstate = false;
         foreach ($this->items as $i => $row) {
-            if ($i == 0 // заголовок
-            || count($row) == 1 // раздел или подраздел
-            ) $res[] = $row;
-            else {
-               if (array_key_exists('A', $row) && count($row) > 1) $res[] = $this->joinMultiRow($i);
+            if ($i == 0) { // заголовок
+                $res[] = $row;
+                continue;
             }
-        }
-
-        $inrow = 0;
-        for ($i = 1; $i < $cnt; ++$i) {
-            if ($inrow == 0) {
-                if (count($this->items[$i]) > 1 && array_key_exists('A', $this->items[$i]))
-
+            $newstate = checkState($inrow, $row);
+            if ($inrow) {
+                if ($newstate) $newrow = array_merge_grow($newrow, $row);
+                else {
+                    $res[] = $newrow;
+                    $newrow = $row;
+                    $newstate = true;
+                }
             } else {
-
+                if ($newstate) {
+                    if (count($newrow) > 0) $res[] = $newrow; 
+                    $newrow = $row;
+                }
+                else $res[] = $row;
             }
-
+            $inrow = $newstate;
         }
-        */
+        if (count($newrow) > 0) $res[] = $newrow;
+        $this->items = $res;
     }
 
     function __construct($fname)
@@ -46,7 +69,7 @@ class Specification
 
         $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
         $reader->setReadDataOnly(TRUE);
-            $spreadsheet = $reader->load($fname);
+        $spreadsheet = $reader->load($fname);
 
         $worksheet = $spreadsheet->getActiveSheet();
 
@@ -83,12 +106,11 @@ class Specification
 
     public function getItem(int $idx): array
     {
-        if (count($this->items) >= $idx) return $this->items[$idx]; else return [];
+        if (count($this->items) >= $idx) return $this->items[$idx];
+        else return [];
     }
     public function getHeader(): array
     {
         return $this->getItem(0);
     }
-    
 }
-
