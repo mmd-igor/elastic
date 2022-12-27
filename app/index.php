@@ -1,5 +1,3 @@
-<?php //phpinfo(); exit; 
-?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -50,6 +48,7 @@
     }
 
     require 'vendor/autoload.php';
+    require_once 'config.php';
     require 'elastic.php';
     require 'specification.php';
 

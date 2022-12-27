@@ -13,7 +13,7 @@ class Elastic extends Client
         $client = new Client([
             'host' => 'http://enterprisesearch:3002',
             'app-search' => [
-                'token' => ($_SERVER['SERVER_NAME'] == 'localhost' ? 'private-ck7njn1r3rm4b6zdxise9o7u' : 'search-bner8ykzph4fmjfb8hxyyj27')
+                'token' => ELASTIC_APPSEARCH_TOKEN
             ]
         ]);
         $this->search = $client->appSearch();
