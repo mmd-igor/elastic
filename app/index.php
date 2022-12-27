@@ -1,3 +1,10 @@
+<?php
+
+namespace Level\VOR;
+
+require 'vendor/autoload.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -32,6 +39,7 @@
                     <div class="input-group mb-3">
                         <!-- <input class="form-control" type="file" id="formFile" name="userfile" /> -->
                         <input accept=".xlsx,.xls" class="form-control" type="file" id="formFile" name="userfile" />
+                        <input class="form-control" type="text" placeholder="Фильтр по коду затрат" aria-label="" name="excode">
                         <input type="submit" class="btn btn-outline-secondary" value="Отправить" />
                     </div>
                     <div class="form-check form-check-inline">
@@ -47,12 +55,7 @@
         exit;
     }
 
-    require 'vendor/autoload.php';
     require_once 'config.php';
-    require 'elastic.php';
-    require 'specification.php';
-
-    //echo '<pre>';     print_r($_POST);     echo '</pre>';     exit;
 
     try {
         // загрузка спецификации
@@ -113,8 +116,8 @@
                     continue;
                 } else $cnt++;
 
-                $material = @$elastic->getRecord($item['E'], $item['C'], $item['B'], 'level-engine');
-                $work = @$elastic->getRecord(null, ($material ? $material['vcode']['raw'] : null), $item['B'], 'works');
+                $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
+                $work = @$elastic->getWork(($material ? $material['vcode']['raw'] : null), $item['B'], (array_key_exists('excode', $_POST) ? $_POST['excode'] : ''));
 
                 $rowstr = sprintf('<td>%s</td>', $cnt);
                 $notes = [];
@@ -145,37 +148,6 @@
                 $rowstr .= '<td colspan="2"></td>';
                 printf("<tr>%s</tr>\n", $rowstr);
             }
-            /*
-                $rowstr = '';
-                foreach($header as $hdr) $rowstr .= sprintf('<td>%s</td>', $hdr);
-                $score = 0;
-                if ($row >= 2 && $ok > 1) { # только для материалов
-                    $ref = $elastic->getRecord($worksheet->getCell('E' . $row)->getValue(), $worksheet->getCell('C' . $row)->getValue(), $worksheet->getCell('B' . $row)->getValue());
-                    if ($ref) { # есть что-то?
-                        $score =  $ref['_meta']['score'];
-                        $rowstr .= sprintf('<td class="fw-bold text-end">%.2f</td><td class="text-nowrap">%s</td><td>%s</td>', $score, $ref['mcode']['raw'], $ref['material']['raw']);
-                    } else
-                        $rowstr .= '<td colspan="3" class="red">не найдено</td>';
-                } else {
-                    $rowstr .= '<td colspan="3"></td>';
-                }
-
-                # боевая раскраска
-                if ($row == 1) $class = 'dark'; # шапка таблицы
-                else if ($ok == 1) $class = 'primary'; # секции (группы) спецификации
-                else if ($score < 100) $class = 'danger';
-                else if ($score < 200) $class = 'warning';
-                else $class = 'success';
-
-                #
-                printf('<tr class="table-%s">', $class);
-                echo $rowstr;
-                echo '</tr>' . PHP_EOL;
-
-                # структура таблицы
-                if ($row == 1) echo '</thead><tbody class="table-group-divider">';
-                */
-
             unset($worksheet);
             unset($spreadsheet);
             unset($reader);

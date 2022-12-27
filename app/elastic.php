@@ -1,5 +1,7 @@
 <?php
 
+namespace Level\VOR;
+
 use Elastic\EnterpriseSearch\AppSearch\Request;
 use Elastic\EnterpriseSearch\AppSearch\Schema;
 use Elastic\EnterpriseSearch\Client;
@@ -43,7 +45,7 @@ class Elastic extends Client
         else return null;
     }
 
-    private function prepareKey($key): String 
+    private function prepareKey($key): String
     {
         if ($key == null) return '';
         //
@@ -56,50 +58,54 @@ class Elastic extends Client
         return $key;
     }
 
-    public function getRecord($brand, $article, $name, $engine)
+    private function clearName($name)
     {
-        $name = preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
-        if ($engine == 'works') {
-            $key = $this->prepareKey($article);
-            if ($key != '') {
-                $res = $this->search($key, $engine);
-            }
-            if ($res) {
-                $res['_meta']['method'] = 'C';
-                return $res;
-            } else {
-                $res = $this->search($this->prepareKey($name), $engine);
-                if ($res) $res['_meta']['method'] = 'B';
-                return $res;
-            }
-        } else {
-            $res = [];
+        return preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
+    }
 
-            $res['C'] = $this->search($this->prepareKey($article), $engine);
-
-            # B
-            $res['B'] = $this->search($this->prepareKey($name), $engine);
-
-            # CB
-            $key = sprintf('%s %s', $article, $name);
-            $res['CB'] = $this->search($this->prepareKey($key), $engine);
-
-            # CEB
-            $key = trim(sprintf('%s %s %s', $article, $brand, $name));
-            $res['CEB'] = $this->search($this->prepareKey($key), $engine);
-
-            $score = 0;
-            $method = '';
-            foreach ($res as $k => $v) {
-                if ($v && $v['_meta']['score'] > $score) {
-                    $v['_meta']['score'] = $score;
-                    $method = $k;
-                }
-            }
-            if ($method == '') return null;
-
-            $res[$method]['_meta']['method'] = $method;
-            return $res[$method];
+    public function getWork($m_vcode, $name, $excode = '')
+    {
+        $key = $this->prepareKey($excode . ' ' . $m_vcode);
+        if ($key != '') {
+            $res = $this->search($key, 'works');
         }
+        if ($res && ($excode == '' || $excode == $res['excode']['raw'])) {
+            $res['_meta']['method'] = 'C';
+            return $res;
+        } else {
+            $key = $excode . ' ' . $this->clearName($name);
+            $res = $this->search($this->prepareKey($key), 'works');
+            if ($res) $res['_meta']['method'] = 'B';
+            if ($excode == '' || $excode == $res['excode']['raw']) return $res; else return null;
+        }
+    }
+
+    public function getMaterial($brand, $article, $name)
+    {
+        $name = $this->clearName($name);
+
+        $res = []; $engine = 'level-engine';
+        $res['C'] = $this->search($this->prepareKey($article), $engine);
+        # B
+        $res['B'] = $this->search($this->prepareKey($name), $engine);
+        # CB
+        $key = sprintf('%s %s', $article, $name);
+        $res['CB'] = $this->search($this->prepareKey($key), $engine);
+        # CEB
+        $key = trim(sprintf('%s %s %s', $article, $brand, $name));
+        $res['CEB'] = $this->search($this->prepareKey($key), $engine);
+
+        $score = 0;
+        $method = '';
+        foreach ($res as $k => $v) {
+            if ($v && $v['_meta']['score'] > $score) {
+                $v['_meta']['score'] = $score;
+                $method = $k;
+            }
+        }
+        if ($method == '') return null;
+
+        $res[$method]['_meta']['method'] = $method;
+        return $res[$method];
     }
 }

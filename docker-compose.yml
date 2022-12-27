@@ -178,6 +178,8 @@ services:
     # монтируем директорию с проектами
     volumes:
       - ./app:/var/www
+    environment:
+      - ELASTIC_APPSEARCH_TOKEN=search-4xvgkedtbbfdna6svwxn1j1k
 
 volumes:
   certs:
