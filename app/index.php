@@ -99,7 +99,7 @@
         </thead>
         <tbody>
             <?php
-            for ($row = 1; $row < $spec->count(); ++$row) {
+            for ($row = 1, $cnt = 0; $row < $spec->count(); ++$row) {
 
                 $item = $spec->getItem($row);
 
@@ -107,16 +107,16 @@
                 foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen($item[$c]) > 3);
                 if ($ok) $ok = count($item) > 1;
                 if (!$ok) {
-                    print('<tr class="table-primary">');
+                    print('<tr class="table-primary"><td></td>');
                     foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
-                    print('<td colspan="11"></td><tr>');
+                    print('<td colspan="10"></td><tr>');
                     continue;
-                }
+                } else $cnt++;
 
                 $material = @$elastic->getRecord($item['E'], $item['C'], $item['B'], 'level-engine');
                 $work = @$elastic->getRecord(null, ($material ? $material['vcode']['raw'] : null), $item['B'], 'works');
 
-                $rowstr = sprintf('<td>%s</td>', $row);
+                $rowstr = sprintf('<td>%s</td>', $cnt);
                 $notes = [];
                 foreach ($header as $l => $h) {
                     $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));

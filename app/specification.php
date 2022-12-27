@@ -3,11 +3,6 @@
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
-function checkState($inrow, $row): bool
-{
-    return array_key_exists('A', $row) != $inrow && count($row) > 1;
-}
-
 function array_merge_grow(array $a1, array $a2): array
 {
     $res = $a1;
@@ -29,6 +24,13 @@ class Specification
         unset($this->items);
     }
 
+    private function checkState($inrow, $row, $idx): bool
+    {
+        $stop = count($row) == 1; $idx++;
+        if ($stop && $idx < count($this->items)) $stop = array_key_exists('A', $this->getItem($idx));
+        return array_key_exists('A', $row) != $inrow && ($stop == false);
+    }
+
     public function checkMultiRow()
     {
         $cnt = count($this->items);
@@ -43,7 +45,7 @@ class Specification
                 $res[] = $row;
                 continue;
             }
-            $newstate = checkState($inrow, $row);
+            $newstate = $this->checkState($inrow, $row, $i);
             if ($inrow) {
                 if ($newstate) $newrow = array_merge_grow($newrow, $row);
                 else {
@@ -53,10 +55,9 @@ class Specification
                 }
             } else {
                 if ($newstate) {
-                    if (count($newrow) > 0) $res[] = $newrow; 
+                    if (count($newrow) > 0) $res[] = $newrow;
                     $newrow = $row;
-                }
-                else $res[] = $row;
+                } else $res[] = $row;
             }
             $inrow = $newstate;
         }
