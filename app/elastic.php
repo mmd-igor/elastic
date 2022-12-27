@@ -29,7 +29,7 @@ class Elastic extends Client
         else return $res;
     }
 
-    private function search(String|array $key, String $engine): array|null
+    private function search(String|array $key, String $engine, $firstonly = true): array|null
     {
         if (strlen($key) < 5) return null;
 
@@ -41,7 +41,10 @@ class Elastic extends Client
         # интерsесует только первая строка результата, если есть
         $result = $result->asArray();
         if (isset($result['results']) && is_array($result['results']) && count($result['results']) > 0)
-            return $result['results'][0];
+            if ($firstonly)
+                return $result['results'][0];
+            else
+                return $result['results'];
         else return null;
     }
 
@@ -65,26 +68,31 @@ class Elastic extends Client
 
     public function getWork($m_vcode, $name, $excode = '')
     {
-        $key = $this->prepareKey($excode . ' ' . $m_vcode);
+        $res = [];
+        $r = [];
+        $key = $this->prepareKey($excode . ' ' . $m_vcode . ' ' . $this->clearName($name));
         if ($key != '') {
-            $res = $this->search($key, 'works');
+            $r = $this->search($key, 'works', $excode == '');
+            if ($r) {
+                if ($excode != '') {
+                    foreach($r as $i) {
+                        if (strpos($i['excode']['raw'], $excode) !== false) {
+                            $i['_meta']['method'] = '*';
+                            return($i);
+                        }
+                    }
+                }
+            }
         }
-        if ($res && ($excode == '' || $excode == $res['excode']['raw'])) {
-            $res['_meta']['method'] = 'C';
-            return $res;
-        } else {
-            $key = $excode . ' ' . $this->clearName($name);
-            $res = $this->search($this->prepareKey($key), 'works');
-            if ($res) $res['_meta']['method'] = 'B';
-            if ($excode == '' || $excode == $res['excode']['raw']) return $res; else return null;
-        }
+        return null;
     }
 
     public function getMaterial($brand, $article, $name)
     {
         $name = $this->clearName($name);
 
-        $res = []; $engine = 'level-engine';
+        $res = [];
+        $engine = 'level-engine';
         $res['C'] = $this->search($this->prepareKey($article), $engine);
         # B
         $res['B'] = $this->search($this->prepareKey($name), $engine);
@@ -99,7 +107,7 @@ class Elastic extends Client
         $method = '';
         foreach ($res as $k => $v) {
             if ($v && $v['_meta']['score'] > $score) {
-                $v['_meta']['score'] = $score;
+                $score = $v['_meta']['score'];
                 $method = $k;
             }
         }
