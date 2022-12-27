@@ -70,7 +70,14 @@ class Elastic extends Client
     {
         $res = [];
         $r = [];
-        $key = $this->prepareKey($excode . ' ' . $m_vcode . ' ' . $this->clearName($name));
+/*        $keys = [
+            '*' => ['key' => $excode . ' ' . $m_vcode . ' ' . $this->clearName($name)],
+            'C' => ['key' => $excode . ' ' . $m_vcode],
+        ];
+        */
+        $key = $excode . ' ' . $m_vcode;
+        if ($excode != '') $key .= ' ' . $this->clearName($name);
+        $key = $this->prepareKey($key);
         if ($key != '') {
             $r = $this->search($key, 'works', $excode == '');
             if ($r) {
@@ -81,6 +88,9 @@ class Elastic extends Client
                             return($i);
                         }
                     }
+                } else {
+                    $r['_meta']['method'] = 'C';
+                    return $r;
                 }
             }
         }
