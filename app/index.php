@@ -51,6 +51,10 @@ require 'vendor/autoload.php';
                         <input class="form-check-input" type="checkbox" id="multiLine" value="true" name="multiLine">
                         <label class="form-check-label" for="multiLine">Многострочный парсер</label>
                     </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="greenonly" value="true" name="greenonly">
+                        <label class="form-check-label" for="greenonly">Только зеленые</label>
+                    </div>
                 </form>
             </div>
         </div>
@@ -77,7 +81,7 @@ require 'vendor/autoload.php';
     }
 
     if (array_key_exists('multiLine', $_POST)) $spec->checkMultiRow();
-    //$spec->dump();     exit;
+    $greenonly = array_key_exists('greenonly', $_POST);
 
     // движок эластика
     $elastic = new Elastic();
@@ -122,23 +126,35 @@ require 'vendor/autoload.php';
                     continue;
                 } else $cnt++;
 
-                $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
-                $work = @$elastic->getWork(($material ? $material['vcode']['raw'] : null), $item['B'], (array_key_exists('excode', $_POST) ? $_POST['excode'] : ''));
-
                 $rowstr = sprintf('<td>%s</td>', $cnt);
                 $notes = [];
                 foreach ($header as $l => $h) {
                     $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));
                 }
-                if ($work) {
-                    $s = $work['_meta']['score'];
-                    if ($s < 7) $c = 'danger';
-                    else if ($s < 10) $c = 'warning';
-                    else $c = 'success';
-                    foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
-                    $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
-                } else
-                    $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
+
+                $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
+                if ($greenonly && (!$material || ($material && $material['_meta']['score'] < 200))) {
+                    echo '<tr>' . $rowstr;
+                    for ($i = 0; $i < 10; $i++) echo '<td></td>';
+                    echo '</tr>';
+                    continue;
+                }
+
+                $work = @$elastic->getWork(($material ? $material['vcode']['raw'] : null), $item['B'], (array_key_exists('excode', $_POST) ? $_POST['excode'] : ''));
+                if ($greenonly && (!$work || ($work && $work['_meta']['score'] < 10))) {
+                    for ($i = 0; $i < 3; $i++) $rowstr .= '<td></td>';
+                } else {
+                    if ($work) {
+                        $s = $work['_meta']['score'];
+                        if ($s < 7) $c = 'danger';
+                        else if ($s < 10) $c = 'warning';
+                        else $c = 'success';
+                        foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
+                        $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
+                    } else {
+                        $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
+                    }
+                }
                 //
                 if ($material) {
                     $s = $material['_meta']['score'];
@@ -151,7 +167,7 @@ require 'vendor/autoload.php';
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //
                 $rowstr .= sprintf('<td>%s</td>', implode(', ', $notes));
-                $rowstr .= '<td colspan="2"></td>';
+                $rowstr .= '<td></td><td></td>';
                 printf("<tr>%s</tr>\n", $rowstr);
             }
             unset($worksheet);

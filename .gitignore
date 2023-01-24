@@ -2,6 +2,7 @@
 /composer.lock
 /logs/
 /data/
+/bugs/
 .DS_Store
 config.php
 array.php
