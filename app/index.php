@@ -25,6 +25,13 @@ require 'vendor/autoload.php';
 
 <body>
     <?php
+    require_once 'config.php';
+    if (false) {
+        $elastic = new Elastic();
+        $elastic->EsSearch('');
+        echo '</body></html>'; 
+        exit; 
+    }
     //
     if (count($_FILES) > 0) {
         $uploaddir = '/var/www/data/';
@@ -64,8 +71,6 @@ require 'vendor/autoload.php';
         exit;
     }
 
-    require_once 'config.php';
-
     try {
         // загрузка спецификации
         $spec = new Specification($uploadfile);
@@ -80,12 +85,15 @@ require 'vendor/autoload.php';
         die('');
     }
 
-    if (array_key_exists('multiLine', $_POST)) $spec->checkMultiRow();
+    
+    if (array_key_exists('multiLine', $_POST)) {
+        $spec->checkMultiRow();
+    }
     $greenonly = array_key_exists('greenonly', $_POST);
 
+    //$spec->dump(); die();
     // движок эластика
     $elastic = new Elastic();
-    //$elastic->EsSearch('');     exit;
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
@@ -112,19 +120,27 @@ require 'vendor/autoload.php';
         </thead>
         <tbody>
             <?php
+            $okcnt = $corecnt = $successcnt = 0;
             for ($row = 1, $cnt = 0; $row < $spec->count(); ++$row) {
 
                 $item = $spec->getItem($row);
+                
+                $ccnt = 0;
+                foreach($item as $c) if (strlen($c) > 2) $ccnt++;
+                // счетчик строк с количеством значимых полей от 3
+                if ($ccnt > 2) $corecnt++; elseif ($ccnt == 0) continue; // если нет ни одного поля - не работаем с такой строкой                
 
+                // есть хоть одна из колонок B,C,E со значением длиной более 3 символов?
                 $ok = false;
-                foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen($item[$c]) > 3);
-                if ($ok) $ok = count($item) > 1;
-                if (!$ok) {
+                foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen(trim($item[$c])) > 3);
+                // это единственная колонка в строке?
+                if ($ok) $ok = $ccnt <= 1;
+                if ($ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
                     print('<tr class="table-primary"><td></td>');
                     foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
-                    print('<td colspan="10"></td><tr>');
+                    print('<td colspan="10"></td></tr>');
                     continue;
-                } else $cnt++;
+                } else $cnt++; // общий счетчик строк спецификации, с которыми работаем
 
                 $rowstr = sprintf('<td>%s</td>', $cnt);
                 $notes = [];
@@ -133,23 +149,32 @@ require 'vendor/autoload.php';
                 }
 
                 $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
-                if ($greenonly && (!$material || ($material && $material['_meta']['score'] < 200))) {
+                $material_ok = $material && $material['_meta']['score'] >= MATERIAL_LEVEL_SUCCESS;
+                if ($material_ok) { $successcnt += 50; } // счетчик успешных распознаваний - 50 очков за материал
+                if ($greenonly && (!$material || ($material && $material['_meta']['score'] < MATERIAL_LEVEL_SUCCESS))) {
                     echo '<tr>' . $rowstr;
                     for ($i = 0; $i < 10; $i++) echo '<td></td>';
                     echo '</tr>';
                     continue;
                 }
 
-                $work = @$elastic->getWork(($material ? $material['vcode']['raw'] : null), $item['B'], (array_key_exists('excode', $_POST) ? $_POST['excode'] : ''));
-                if ($greenonly && (!$work || ($work && $work['_meta']['score'] < 10))) {
+                if ($material && (!$greenonly || $material_ok)) {
+                    $excode = array_key_exists('excode', $_POST) ? $_POST['excode'] : '';
+                    $work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
+                    if ($material_ok && $excode != '') $work['_meta']['score'] += 3.0;
+                } else {
+                    $work = null;
+                }
+                if ($material_ok && $work && $work['_meta']['score'] >= WORK_LEVEL_SUCCESS) { $successcnt += 50; } // счетчик успешных распознаваний - 50 очков за работу
+                if ($greenonly && (!$work || ($work && $work['_meta']['score'] < WORK_LEVEL_SUCCESS))) {
                     for ($i = 0; $i < 3; $i++) $rowstr .= '<td></td>';
                 } else {
                     if ($work) {
                         $s = $work['_meta']['score'];
                         if ($s < 7) $c = 'danger';
-                        else if ($s < 10) $c = 'warning';
+                        else if ($s < WORK_LEVEL_SUCCESS) $c = 'warning';
                         else $c = 'success';
-                        foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? $work[$l]['raw'] : ''));
+                        foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
                         $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
                     } else {
                         $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
@@ -159,7 +184,7 @@ require 'vendor/autoload.php';
                 if ($material) {
                     $s = $material['_meta']['score'];
                     if ($s < 100) $c = 'danger';
-                    else if ($s < 200) $c = 'warning';
+                    else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
                     $notes[] = sprintf('m%.0f/%s', $material['_meta']['score'], $material['_meta']['method']);
@@ -177,6 +202,7 @@ require 'vendor/autoload.php';
             ?>
         </tbody>
     </table>
+    <div>Качество рапознавания: <?= round($successcnt / $corecnt) ?>%</div>
     <div class="mx-auto col-1 my-3">
         <form enctype="multipart/form-data" action="/saveAs.php" method="POST" onsubmit="saveToExcel()">
             <input type="hidden" name="table" id="tableForm" />

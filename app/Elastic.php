@@ -52,11 +52,23 @@ class Elastic extends Client
     {
         // Elasticsearch query
         $searchParams = new Schema\EsSearchParams();
-        $searchParams->query = [
-            'match' => [
-                'excode' => '05.04.05'
-            ]
-        ];
+        $searchParams->query =
+            [
+                "bool" => [
+                    "must" => [
+                        [
+                            "match" => [
+                                "m_gcode" => "S23.01-41"
+                            ]
+                        ],
+                        [
+                            "match" => [
+                                "excode" => "05.04.08"
+                            ]
+                        ]
+                    ]
+                ]
+            ];
 
         // This is the Elasticsearch token API (Bearer)
         $elasticsearchApiKey = ELASTIC_APPSEARCH_TOKEN;
@@ -67,6 +79,7 @@ class Elastic extends Client
         );
 
         printf('<pre>%s</pre>', print_r($result->asArray(), true)); // Elasticsearch result in ['hits']['hits']
+        var_dump($searchParams);
     }
 
     private function prepareKey($key): String
@@ -146,5 +159,55 @@ class Elastic extends Client
 
         $res[$method]['_meta']['method'] = $method;
         return $res[$method];
+    }
+
+    public function getWork2($m_vcode, $m_name, $excode)
+    {
+        if ($excode != '') {
+            $key = 'excode';
+            $val = $excode;
+        } else {
+            $key = 'wname';
+            $val = $this->clearName($m_name);
+        }
+        // Elasticsearch query
+        $searchParams = new Schema\EsSearchParams();
+        $searchParams->query =
+            [
+                "bool" => [
+                    "must" => [
+                        [
+                            "match" => [
+                                "m_gcode" => $m_vcode
+                            ]
+                        ],
+                        [
+                            "match" => [
+                                "$key" => $val
+                            ]
+                        ]
+                    ]
+                ]
+            ];
+
+        // This is the Elasticsearch token API (Bearer)
+        $elasticsearchApiKey = ELASTIC_APPSEARCH_TOKEN;
+
+        $result = $this->search->searchEsSearch(
+            (new Request\SearchEsSearch('works', '', $searchParams))
+                ->setAuthorization($elasticsearchApiKey)
+        );
+
+        if ($result) $result = $result->asArray();
+        //echo '<pre>' . $m_vcode . ' ' . $excode . '</pre>';        var_dump($result['hits']['hits'][0]);        die();
+
+        if (is_array($result) && array_key_exists('hits', $result) && $result['hits']['total']['value'] > 0) {
+            $result['hits']['hits'][0]['_source']['_meta']['score'] = $result['hits']['hits'][0]['_score'];
+            $result['hits']['hits'][0]['_source']['_meta']['method'] = 'M';
+
+            return $result['hits']['hits'][0]['_source'];
+        } else {
+            return null;
+        }
     }
 }

@@ -27,9 +27,30 @@ class Specification
 
     private function checkState($inrow, $row, $idx): bool
     {
+        
         $stop = count($row) == 1; $idx++;
         if ($stop && $idx < count($this->items)) $stop = array_key_exists('A', $this->getItem($idx));
         return array_key_exists('A', $row) != $inrow && ($stop == false);
+        /*
+        $isA = array_key_exists('A', $row) && $row['A'] !== '';// $this->getItem($idx));
+        $onlyB = (count($row) == 1) && array_key_exists('B', $row) && $row['B'] !== '';
+        if ($inrow) {
+            if ($onlyB) {
+                return true;
+            }
+            else {
+                return false;
+            }
+
+        } else {
+            if ($isA) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        */
     }
 
     public function checkMultiRow()
@@ -47,6 +68,7 @@ class Specification
                 continue;
             }
             $newstate = $this->checkState($inrow, $row, $i);
+            //print_r($row); printf("%s -> %s [%d cnt:%d]<br>", (int)$inrow, (int)$newstate, $i, count($row));
             if ($inrow) {
                 if ($newstate) $newrow = array_merge_grow($newrow, $row);
                 else {
@@ -82,10 +104,17 @@ class Specification
         $highestColumn++;
         //
         for ($row = 1; $row <= $highestRow; ++$row) {
+            //if ($row == 1) $arr = []; else $arr['corecnt'] = 0;
             $arr = [];
             for ($col = 'A'; $col != $highestColumn; ++$col) {
                 $value = $worksheet->getCell($col . $row)->getValue();
-                if ($value != null) $arr[$col] = $value;
+                if ($value != null) {
+                    $value = trim($value);
+                    if ($value !== '') {
+                        $arr[$col] = $value;
+                        //if ($row > 1 && strlen($value) > 2) $arr['corecnt']++;
+                    }
+                }
             }
             if (count($arr) > 0) $this->items[] = $arr;
         }
