@@ -95,7 +95,7 @@ require 'vendor/autoload.php';
     //$spec->dump(); die();
     // движок эластика
     $elastic = new Elastic();
-    $works = new Works();
+    $works = new works();
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
