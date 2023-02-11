@@ -183,10 +183,8 @@ services:
   mysql:
     image: mariadb:latest
     restart: 'always'
-    ports:
-      - 33061:3306
     volumes: 
-      - "./data:/var/lib/mysql/data"      
+      - "./data:/var/lib/mysql"      
     environment:
       MYSQL_ROOT_PASSWORD: "dasljk3JK"
       MYSQL_DATABASE: mw_db
