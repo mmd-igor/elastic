@@ -3,6 +3,9 @@
 /logs/
 /data/
 /bugs/
+/app/newref/*
+!/app/newref/*.php
+!/app/newref/*.sql
 .DS_Store
 config.php
 array.php

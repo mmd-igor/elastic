@@ -3,6 +3,7 @@
 namespace Level\VOR;
 
 require 'vendor/autoload.php';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -94,6 +95,7 @@ require 'vendor/autoload.php';
     //$spec->dump(); die();
     // движок эластика
     $elastic = new Elastic();
+    $works = new Works();
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
@@ -160,8 +162,9 @@ require 'vendor/autoload.php';
 
                 if ($material && (!$greenonly || $material_ok)) {
                     $excode = array_key_exists('excode', $_POST) ? $_POST['excode'] : '';
-                    $work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
-                    if ($material_ok && $excode != '') $work['_meta']['score'] += 3.0;
+                    //$work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
+                    $work = $works->getWork($material['mcode']['raw']);
+                    if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0;
                 } else {
                     $work = null;
                 }

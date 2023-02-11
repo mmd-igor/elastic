@@ -173,14 +173,25 @@ services:
     # у нас свой образ для PHP, указываем путь к нему и говорим что его надо собрать
     build: ./images/php
     # этот образ будет общаться с mysql
-    #links:
-    #  - mysql
+    links:
+      - mysql
     # монтируем директорию с проектами
     volumes:
       - ./app:/var/www
     environment:
       - ELASTIC_APPSEARCH_TOKEN=search-4xvgkedtbbfdna6svwxn1j1k
-
+  mysql:
+    image: mariadb:latest
+    restart: 'always'
+    ports:
+      - 33061:3306
+    volumes: 
+      - "./data:/var/lib/mysql/data"      
+    environment:
+      MYSQL_ROOT_PASSWORD: "dasljk3JK"
+      MYSQL_DATABASE: mw_db
+      MYSQL_USER: mw_user
+      MYSQL_PASSWORD: dasljk3JK
 volumes:
   certs:
     driver: local
