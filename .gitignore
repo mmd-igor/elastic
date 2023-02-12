@@ -3,6 +3,7 @@
 /logs/
 /data/
 /bugs/
+/app/data/
 /app/newref/*
 !/app/newref/*.php
 !/app/newref/*.sql
