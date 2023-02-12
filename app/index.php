@@ -21,6 +21,11 @@ require 'vendor/autoload.php';
             let t = document.getElementById('mainTable');
             document.getElementById('tableForm').value = t.outerHTML;
         }
+        function check_wcode(sel) {
+            var idx = sel.selectedIndex;
+            var val = sel.options[idx].value;
+            document.getElementById('wcode-' + sel.dataset.rownum).innerText = val;
+        }
     </script>
 </head>
 
@@ -117,6 +122,8 @@ require 'vendor/autoload.php';
                 <td>Примечание</td>
                 <td>Ед.изм</td>
                 <td>Объем</td>
+                <td>M-Score</td>
+                <td>W-Score</td>
             </tr>
             </tr>
         </thead>
@@ -140,7 +147,7 @@ require 'vendor/autoload.php';
                 if ($ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
                     print('<tr class="table-primary"><td></td>');
                     foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
-                    print('<td colspan="10"></td></tr>');
+                    print('<td colspan="12"></td></tr>');
                     continue;
                 } else $cnt++; // общий счетчик строк спецификации, с которыми работаем
 
@@ -155,7 +162,7 @@ require 'vendor/autoload.php';
                 if ($material_ok) { $successcnt += 50; } // счетчик успешных распознаваний - 50 очков за материал
                 if ($greenonly && (!$material || ($material && $material['_meta']['score'] < MATERIAL_LEVEL_SUCCESS))) {
                     echo '<tr>' . $rowstr;
-                    for ($i = 0; $i < 10; $i++) echo '<td></td>';
+                    for ($i = 0; $i < 12; $i++) echo '<td></td>';
                     echo '</tr>';
                     continue;
                 }
@@ -177,7 +184,16 @@ require 'vendor/autoload.php';
                         if ($s < 7) $c = 'danger';
                         else if ($s < WORK_LEVEL_SUCCESS) $c = 'warning';
                         else $c = 'success';
-                        foreach (['excode', 'wcode', 'wname'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
+                        foreach (['excode', 'wcode'] as $l) $rowstr .= sprintf('<td class="table-%s" id="%s-%d">%s</td>', $c, $l, $cnt, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
+                        if (count($work['rows']) > 1) {
+                            $rowstr .= sprintf('<td class="table-%s"><select name="works" id="cbWorks" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
+                            foreach ($work['rows'] as $wr) {
+                                $rowstr .= sprintf('<option value="%s">%s</option>', $wr['wcode'], $wr['wname']);
+                            }
+                            $rowstr .= '</select></td>';
+                        } else {
+                            $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists('wname', $work) ? (is_array($work['wname']) ? $work['wname']['raw'] : $work['wname']) : ''));
+                        }
                         $notes[] = sprintf('w%.0f/%s', $work['_meta']['score'], $work['_meta']['method']);
                     } else {
                         $rowstr .= '<td colspan="3" class="table-danger">работ не найдено</td>';
@@ -195,7 +211,7 @@ require 'vendor/autoload.php';
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //
                 $rowstr .= sprintf('<td>%s</td>', implode(', ', $notes));
-                $rowstr .= '<td></td><td></td>';
+                $rowstr .= sprintf('<td></td><td></td><td>%s</td><td>%s</td>', $material ? round($material['_meta']['score']) : '-', $work ? round($work['_meta']['score']) : '-');
                 printf("<tr>%s</tr>\n", $rowstr);
             }
             unset($worksheet);

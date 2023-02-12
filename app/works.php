@@ -32,6 +32,7 @@ class works
             $arr[] = $row;
         }
         $this->stmt->free_result();
+        $arr[0]['rows'] = $arr;
         $cnt = count($arr);
         switch ($cnt) {
             case 0:
