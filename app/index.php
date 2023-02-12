@@ -18,6 +18,10 @@ require 'vendor/autoload.php';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
     <script>
         function saveToExcel() {
+            var selects = Array.from(document.getElementsByTagName('select'));
+            for (const sel of selects) {
+                sel.parentElement.innerText = sel.selectedOptions[0].innerText;
+            }
             let t = document.getElementById('mainTable');
             document.getElementById('tableForm').value = t.outerHTML;
         }
@@ -186,7 +190,7 @@ require 'vendor/autoload.php';
                         else $c = 'success';
                         foreach (['excode', 'wcode'] as $l) $rowstr .= sprintf('<td class="table-%s" id="%s-%d">%s</td>', $c, $l, $cnt, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
                         if (count($work['rows']) > 1) {
-                            $rowstr .= sprintf('<td class="table-%s"><select name="works" id="cbWorks" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
+                            $rowstr .= sprintf('<td class="table-%s"><select name="works" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
                             foreach ($work['rows'] as $wr) {
                                 $rowstr .= sprintf('<option value="%s">%s</option>', $wr['wcode'], $wr['wname']);
                             }
