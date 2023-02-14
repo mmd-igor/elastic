@@ -100,11 +100,12 @@ require 'vendor/autoload.php';
         $spec->checkMultiRow();
     }
     $greenonly = array_key_exists('greenonly', $_POST);
+    $excode = array_key_exists('excode', $_POST) ? $_POST['excode'] : '';
 
     //$spec->dump(); die();
     // движок эластика
     $elastic = new Elastic();
-    $works = new works();
+    $works = new works($excode);
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
@@ -172,7 +173,6 @@ require 'vendor/autoload.php';
                 }
 
                 if ($material && (!$greenonly || $material_ok)) {
-                    $excode = array_key_exists('excode', $_POST) ? $_POST['excode'] : '';
                     //$work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
                     $work = $works->getWork($material['mcode']['raw']);
                     if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0;
@@ -189,7 +189,7 @@ require 'vendor/autoload.php';
                         else if ($s < WORK_LEVEL_SUCCESS) $c = 'warning';
                         else $c = 'success';
                         foreach (['excode', 'wcode'] as $l) $rowstr .= sprintf('<td class="table-%s" id="%s-%d">%s</td>', $c, $l, $cnt, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
-                        if (count($work['rows']) > 1) {
+                        if (array_key_exists('rows', $work) && count($work['rows']) > 1) {
                             $rowstr .= sprintf('<td class="table-%s"><select name="works" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
                             foreach ($work['rows'] as $wr) {
                                 $rowstr .= sprintf('<option value="%s">%s</option>', $wr['wcode'], $wr['wname']);
@@ -210,7 +210,7 @@ require 'vendor/autoload.php';
                     else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
-                    $notes[] = sprintf('m%.0f/%s', $material['_meta']['score'], $material['_meta']['method']);
+                    $notes[] = sprintf('<div title="%s">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
                 } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //

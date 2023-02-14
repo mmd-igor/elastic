@@ -41,8 +41,10 @@ class Elastic extends Client
         # интерsесует только первая строка результата, если есть
         $result = $result->asArray();
         if (isset($result['results']) && is_array($result['results']) && count($result['results']) > 0)
-            if ($firstonly)
+            if ($firstonly) {
+                $result['results'][0]['_meta']['_key'] = $key;
                 return $result['results'][0];
+            }
             else
                 return $result['results'];
         else return null;
@@ -97,7 +99,17 @@ class Elastic extends Client
 
     private function clearName($name)
     {
-        return preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
+        $name = preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
+        $re = '/[а-яА-Я\w\/,\.]*[0-9]+[а-яА-Я\w]*/';
+        preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);
+        $re = [];
+        foreach ($matches as $m) {
+            $re[] = $m[0];
+            if (stripos($m[0], 'DN') === 0 && stripos($m[0], 'мм') === false) $re[] = $m[0] . 'мм';
+            $name = str_replace($m[0], '', $name);
+        }
+        $re[] = $name;
+        return implode(' ', $re);
     }
 
     public function getWork($m_vcode, $name, $excode = '')

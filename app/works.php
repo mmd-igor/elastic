@@ -9,20 +9,29 @@ class works
     private $mysql;
     private $stmt;
     private string $m_code = '';
+    private string $m_excode = '';
 
-    function __construct()
+    function __construct(string $excode = '')
     {
-        $sql = <<<eos
-        select mw.wcode as wcode, w.name as wname
-            from material_work mw, works w where mw.wcode = w.code and mw.mcode = ?;
-        eos;
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
         $this->mysql = new mysqli("mysql", "mw_user", "dasljk3JK", "mw_db");
+
+        $this->m_excode = trim($excode) . '%';
+        $sql = <<<eos
+        select mw.wcode as wcode, w.name as wname, w.wclass as excode
+            from material_work mw, works w where mw.wcode = w.code and mw.mcode = ?
+        eos;
+        if ($this->m_excode !== '') $sql .= ' and w.wclass like ?';
+
         $this->stmt = $this->mysql->prepare($sql);
-        $this->stmt->bind_param('s', $this->m_code);
+
+        if ($this->m_excode === '')
+            $this->stmt->bind_param('s', $this->m_code);
+        else
+            $this->stmt->bind_param('ss', $this->m_code, $this->m_excode);
     }
 
-    public function getWork(string $mcode): array|false
+    public function getWork(string $mcode, string $excode = ''): array|false
     {
         $arr = [];
         $this->m_code = $mcode;
@@ -32,18 +41,18 @@ class works
             $arr[] = $row;
         }
         $this->stmt->free_result();
-        $arr[0]['rows'] = $arr;
         $cnt = count($arr);
         switch ($cnt) {
             case 0:
                 return false;
             case 1:
-                $arr[0]['_meta']['score'] = WORK_LEVEL_SUCCESS +1;
+                $arr[0]['_meta']['score'] = WORK_LEVEL_SUCCESS + 1;
                 break;
             default: {
-                if ($cnt >= WORK_LEVEL_SUCCESS) return false;
-                $arr[0]['_meta']['score'] = WORK_LEVEL_SUCCESS - $cnt -1;
-            }
+                    if ($cnt >= WORK_LEVEL_SUCCESS) return false;
+                    $arr[0]['_meta']['score'] = WORK_LEVEL_SUCCESS - $cnt - 1;
+                    $arr[0]['rows'] = $arr;
+                }
         }
         $arr[0]['_meta']['method'] = "Q$cnt";
         return $arr[0];
@@ -55,3 +64,9 @@ class works
         $this->mysql->close();
     }
 }
+?>
+
+select 
+  mw.mcode, m.name, mw.wcode as wcode, w.name as wname, w.wclass 
+from material_work mw, works w, materials m 
+where mw.wcode = w.code and mw.mcode = m.code and mw.mcode = 'S17.03-11.214.06-D25';
