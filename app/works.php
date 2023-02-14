@@ -65,8 +65,3 @@ class works
     }
 }
 ?>
-
-select 
-  mw.mcode, m.name, mw.wcode as wcode, w.name as wname, w.wclass 
-from material_work mw, works w, materials m 
-where mw.wcode = w.code and mw.mcode = m.code and mw.mcode = 'S17.03-11.214.06-D25';
