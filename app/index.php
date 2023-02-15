@@ -36,8 +36,10 @@ require 'vendor/autoload.php';
 <body>
     <?php
     require_once 'config.php';
-    if (false) {
-        $elastic = new Elastic();
+
+    if (false) { // todo: debug
+    //$elastic = new Elastic(); $str = 'Трубы стальные обыкновенные водогазопроводные, 020х2,8 мм'; echo $str; echo $elastic->clearName($str); die();
+    $elastic = new Elastic();
         $elastic->EsSearch('');
         echo '</body></html>'; 
         exit; 

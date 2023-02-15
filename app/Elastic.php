@@ -23,7 +23,8 @@ class Elastic extends Client
 
     protected function sanitizeKey(String $key): String
     {
-        $res = substr(preg_replace('/\s{2,}/', ' ', preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $key)), 0, 128);
+        //$res = substr(preg_replace('/\s{2,}/', ' ', preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $key)), 0, 128);
+        $res = substr(preg_replace('/\s{2,}/', ' ', $key), 0, 128);
         if (($pos = strrpos($res, ' ', -1)) !== false)
             return substr($res, 0, $pos);
         else return $res;
@@ -97,15 +98,22 @@ class Elastic extends Client
         return $key;
     }
 
-    private function clearName($name)
+    public function clearName($name) // todo private
     {
-        $name = preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
-        $re = '/[а-яА-Я\w\/,\.]*[0-9]+[а-яА-Я\w]*/';
+        //$name = preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
+        $re = '/[а-яА-Я\w\/,\.]*[0-9]+[а-яА-Я\w]*/u';
         preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);
         $re = [];
         foreach ($matches as $m) {
-            $re[] = $m[0];
             if (stripos($m[0], 'DN') === 0 && stripos($m[0], 'мм') === false) $re[] = $m[0] . 'мм';
+            if (preg_match_all('/(0\d+)[xXхХ](\d+[\.,]\d+)/u', $m[0], $m2, PREG_SET_ORDER, 0) === 1 && is_array($m2[0]) && count($m2[0]) === 3) {
+                $re[] = $m2[0][2] . ' мм';
+                $diam = ltrim($m2[0][1], '0');
+                $re[] = "DN$diam";
+                $re[] = $diam . ' мм';
+            } else {
+                $re[] = $m[0];
+            }
             $name = str_replace($m[0], '', $name);
         }
         $re[] = $name;
@@ -149,7 +157,7 @@ class Elastic extends Client
 
         $res = [];
         $engine = 'level-engine';
-        $res['C'] = $this->search($this->prepareKey($article), $engine);
+        //$res['C'] = $this->search($this->prepareKey($article), $engine);
         # B
         $res['B'] = $this->search($this->prepareKey($name), $engine);
         # CB
