@@ -166,8 +166,8 @@ require 'vendor/autoload.php';
                 $ok = false;
                 foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen(trim($item[$c])) > 3);
                 // это единственная колонка в строке?
-                if ($ok) $ok = $ccnt <= 1;
-                if ($ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
+                if ($ok) $ok = $ccnt > 1;  
+                if (!$ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
                     print('<tr class="table-primary"><td></td>');
                     foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
                     print('<td colspan="12"></td></tr>');
