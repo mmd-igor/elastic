@@ -101,16 +101,17 @@ class Elastic extends Client
     public function clearName($name) // todo private
     {
         //$name = preg_replace('/[\.,_\-!@#$%^&*]+/', ' ', $name);
+        $name = str_replace('мм', '', $name);
         $re = '/[а-яА-Я\w\/,\.]*[0-9]+[а-яА-Я\w]*/u';
         preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);
         $re = [];
         foreach ($matches as $m) {
-            if (stripos($m[0], 'DN') === 0 && stripos($m[0], 'мм') === false) $re[] = $m[0] . 'мм';
+            //if (stripos($m[0], 'DN') === 0 && stripos($m[0], 'мм') === false) $re[] = $m[0] . 'мм';
             if (preg_match_all('/(0\d+)[xXхХ](\d+[\.,]\d+)/u', $m[0], $m2, PREG_SET_ORDER, 0) === 1 && is_array($m2[0]) && count($m2[0]) === 3) {
-                $re[] = $m2[0][2] . ' мм';
+                //$re[] = $m2[0][2] . ' мм';
                 $diam = ltrim($m2[0][1], '0');
                 $re[] = "DN$diam";
-                $re[] = $diam . ' мм';
+                //$re[] = $diam . ' мм';
             } else {
                 $re[] = $m[0];
             }

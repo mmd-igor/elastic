@@ -25,10 +25,25 @@ require 'vendor/autoload.php';
             let t = document.getElementById('mainTable');
             document.getElementById('tableForm').value = t.outerHTML;
         }
+
         function check_wcode(sel) {
             var idx = sel.selectedIndex;
             var val = sel.options[idx].value;
             document.getElementById('wcode-' + sel.dataset.rownum).innerText = val;
+        }
+
+        function Copy2Clipboard(el) {
+            var text = el.getAttribute('title');
+            console.log(text);
+            const copyContent = async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    console.log('Content copied to clipboard');
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                }
+            }
+            copyContent();
         }
     </script>
 </head>
@@ -38,11 +53,11 @@ require 'vendor/autoload.php';
     require_once 'config.php';
 
     if (false) { // todo: debug
-    //$elastic = new Elastic(); $str = 'Трубы стальные обыкновенные водогазопроводные, 020х2,8 мм'; echo $str; echo $elastic->clearName($str); die();
-    $elastic = new Elastic();
+        //$elastic = new Elastic(); $str = 'Трубы стальные обыкновенные водогазопроводные, 020х2,8 мм'; echo $str; echo $elastic->clearName($str); die();
+        $elastic = new Elastic();
         $elastic->EsSearch('');
-        echo '</body></html>'; 
-        exit; 
+        echo '</body></html>';
+        exit;
     }
     //
     if (count($_FILES) > 0) {
@@ -97,7 +112,7 @@ require 'vendor/autoload.php';
         die('');
     }
 
-    
+
     if (array_key_exists('multiLine', $_POST)) {
         $spec->checkMultiRow();
     }
@@ -140,11 +155,12 @@ require 'vendor/autoload.php';
             for ($row = 1, $cnt = 0; $row < $spec->count(); ++$row) {
 
                 $item = $spec->getItem($row);
-                
+
                 $ccnt = 0;
-                foreach($item as $c) if (strlen($c) > 2) $ccnt++;
+                foreach ($item as $c) if (strlen($c) > 2) $ccnt++;
                 // счетчик строк с количеством значимых полей от 3
-                if ($ccnt > 2) $corecnt++; elseif ($ccnt == 0) continue; // если нет ни одного поля - не работаем с такой строкой                
+                if ($ccnt > 2) $corecnt++;
+                elseif ($ccnt == 0) continue; // если нет ни одного поля - не работаем с такой строкой                
 
                 // есть хоть одна из колонок B,C,E со значением длиной более 3 символов?
                 $ok = false;
@@ -166,7 +182,9 @@ require 'vendor/autoload.php';
 
                 $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
                 $material_ok = $material && $material['_meta']['score'] >= MATERIAL_LEVEL_SUCCESS;
-                if ($material_ok) { $successcnt += 50; } // счетчик успешных распознаваний - 50 очков за материал
+                if ($material_ok) {
+                    $successcnt += 50;
+                } // счетчик успешных распознаваний - 50 очков за материал
                 if ($greenonly && (!$material || ($material && $material['_meta']['score'] < MATERIAL_LEVEL_SUCCESS))) {
                     echo '<tr>' . $rowstr;
                     for ($i = 0; $i < 12; $i++) echo '<td></td>';
@@ -181,7 +199,9 @@ require 'vendor/autoload.php';
                 } else {
                     $work = null;
                 }
-                if ($material_ok && $work && $work['_meta']['score'] >= WORK_LEVEL_SUCCESS) { $successcnt += 50; } // счетчик успешных распознаваний - 50 очков за работу
+                if ($material_ok && $work && $work['_meta']['score'] >= WORK_LEVEL_SUCCESS) {
+                    $successcnt += 50;
+                } // счетчик успешных распознаваний - 50 очков за работу
                 if ($greenonly && (!$work || ($work && $work['_meta']['score'] < WORK_LEVEL_SUCCESS))) {
                     for ($i = 0; $i < 3; $i++) $rowstr .= '<td></td>';
                 } else {
@@ -212,7 +232,7 @@ require 'vendor/autoload.php';
                     else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
-                    $notes[] = sprintf('<div title="%s">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
+                    $notes[] = sprintf('<div title="%s" onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
                 } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //
