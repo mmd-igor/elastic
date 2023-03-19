@@ -15,11 +15,11 @@
 //print_r(explode('.', 'S17.02-33.222.01-D15'));exit;
 /*
 $sql = <<<eof
-CREATE DATABASE if not exists mw_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+'CREATE DATABASE if not exists mw_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER if not exists 'mw_user'@'%' IDENTIFIED BY 'dasljk3JK';
 GRANT ALL PRIVILEGES ON mw_db.* TO 'mw_user'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
-
+'
 drop table material_work;
 drop table works;
 drop table wclasses;

@@ -2,6 +2,8 @@
 
 namespace Level\VOR;
 
+use ElasticSearch;
+
 require 'vendor/autoload.php';
 
 ?>
@@ -53,10 +55,10 @@ require 'vendor/autoload.php';
     require_once 'config.php';
 
     if (false) { // todo: debug
-        //$elastic = new Elastic(); $str = 'Трубы стальные обыкновенные водогазопроводные, 020х2,8 мм'; echo $str; echo $elastic->clearName($str); die();
-        $elastic = new Elastic();
-        $elastic->EsSearch('');
-        echo '</body></html>';
+        $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
+        echo '<pre>';
+        var_dump($elastic->getMaterial('Трубы стальные', 'ГОСТ 3262-75', 'Трубы стальные обыкновенные водогазопроводные, 032х3,2 мм'));
+        echo '</pre></body></html>';
         exit;
     }
     //
@@ -121,8 +123,9 @@ require 'vendor/autoload.php';
 
     //$spec->dump(); die();
     // движок эластика
-    $elastic = new Elastic();
-    $works = new works($excode);
+    //$elastic = new Elastic();
+    $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
+    //$works = new works($excode); todo
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
@@ -180,10 +183,10 @@ require 'vendor/autoload.php';
                     $rowstr .= sprintf('<td>%s</td>', (array_key_exists($l, $item) ? $item[$l] : ''));
                 }
 
-                $material = @$elastic->getMaterial($item['E'], $item['C'], $item['B']);
+                $material = @$elastic->getMaterial($item['E'], sprintf('%s %s', $item['C'], $item['D']), $item['B']);
                 $material_ok = $material && $material['_meta']['score'] >= MATERIAL_LEVEL_SUCCESS;
                 if ($material_ok) {
-                    $successcnt += 50;
+                    $successcnt += 100;//50; todo:
                 } // счетчик успешных распознаваний - 50 очков за материал
                 if ($greenonly && (!$material || ($material && $material['_meta']['score'] < MATERIAL_LEVEL_SUCCESS))) {
                     echo '<tr>' . $rowstr;
@@ -194,7 +197,7 @@ require 'vendor/autoload.php';
 
                 if ($material && (!$greenonly || $material_ok)) {
                     //$work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
-                    $work = $works->getWork($material['mcode']['raw']);
+                    $work = null;//$works->getWork($material['mcode']['raw']); //todo
                     if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0;
                 } else {
                     $work = null;
@@ -228,11 +231,11 @@ require 'vendor/autoload.php';
                 //
                 if ($material) {
                     $s = $material['_meta']['score'];
-                    if ($s < 100) $c = 'danger';
+                    if ($s < MATERIAL_LEVEL_SUCCESS /2) $c = 'danger';
                     else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
-                    foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (array_key_exists($l, $material) ? $material[$l]['raw'] : ''));
-                    $notes[] = sprintf('<div title="%s" onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
+                    foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (is_array($material) && array_key_exists($l, $material) ? (is_array($material[$l]) ? $material[$l]['raw'] : $material[$l]) : ''));
+                    $notes[] = sprintf('<div title=\'%s\' onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']); 
                 } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //

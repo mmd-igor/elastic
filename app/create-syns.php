@@ -4,7 +4,7 @@ require __DIR__ . '/config.php';
 
 $url = 'http://enterprisesearch:3002/api/as/v1/engines/level-engine/synonyms';
 $template = '{ "synonyms": ["DN%d", "DN%dмм", "DN%d мм", "DN %dмм", "D%d", "Д=%dмм", "Д=%d мм", "DN %d", "Ø%d", "Ду=%d"] }';
-$diams = [15, 20, 25, 32, 40, 50, 57, 65, 76, 80, 89, 108, 110, 160];
+$diams = [15, 20, 25, 32, 40, 50, 57, 65, 76, 80, 89, 108, 110, 125, 160];
 
 $syns = [
   ['мм', 'mm', 'мm', 'mм'],

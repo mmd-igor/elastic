@@ -231,4 +231,77 @@ class Elastic extends Client
             return null;
         }
     }
+
+    public function getSamples($brand, $article, $name)
+    {
+
+        $engine = 'material-sample';
+        /*
+        $searchParams = new Schema\EsSearchParams();
+        $searchParams->query =
+            [
+                "bool" => [
+                    "must" => [
+                        [
+                            "match" => [
+                                "s_brand" => $brand
+                            ]
+                        ],
+                        [
+                            "match" => [
+                                "s_name" => $name
+                            ]
+                        ],
+                        [
+                            "match" => [
+                                "s_article" => $article
+                            ]
+                        ]
+                    ]
+                ]
+            ];
+
+        // This is the Elasticsearch token API (Bearer)
+        $elasticsearchApiKey = ELASTIC_APPSEARCH_TOKEN;
+
+        $result = $this->search->searchEsSearch(
+            (new Request\SearchEsSearch($engine, '', $searchParams))
+                ->setAuthorization($elasticsearchApiKey)
+        );
+
+        if ($result) $result = $result->asArray();
+        return $result;
+        */
+
+
+        //$name = $this->clearName($name);
+
+        $res = [];
+        $engine = 'material-sample';
+        # CEB
+        $key = trim(sprintf('%s %s %s', $article, $brand, $name));
+        echo "Key: $key |";
+        $res = $this->search($this->prepareKey($key), $engine, false);
+        var_dump($res);
+        if ($res == null || count($res) < 10) return null;
+
+        $top = $res[0];
+        $res = array_slice($res, 1);
+
+        $data = [];
+
+        foreach ($res as $d) {
+            $data[] = $d['_meta']['score'];
+        }
+
+        $mean = array_sum($data) / count($data);
+        $distance_sum = 0;
+        foreach ($data as $i) {
+            $distance_sum += ($i - $mean) ** 2;
+        }
+        $variance = $distance_sum / count($data);
+        $dev = sqrt($variance);
+
+        if (($top['_meta']['score'] - $mean) > 2 * $dev) return $top; else return null;
+    }
 }
