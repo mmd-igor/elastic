@@ -6,7 +6,7 @@ require_once "config.php";
 
 $materials = json_decode(file_get_contents('data/materials.json'));
 
-$elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
+$es = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
 
 for ($i = 0; $i < count($materials); $i++) {
     $m = $materials[$i];
