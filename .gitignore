@@ -1,9 +1,11 @@
 /app/vendor/
+/app/assets/ca.crt
 /composer.lock
 /logs/
 /data/
 /bugs/
-/app/data/
+/app/data/*
+!/app/data/*.json
 /app/newref/*
 !/app/newref/*.php
 !/app/newref/*.sql
