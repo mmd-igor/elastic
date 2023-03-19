@@ -4,7 +4,7 @@ use Elastic\Elasticsearch\ClientBuilder;
 require_once "vendor/autoload.php";
 require_once "config.php";
 
-$materials = json_decode(file_get_contents('data/materials.json'), true);
+$materials = json_decode(file_get_contents('data/materials.json'));
 
 $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
 
