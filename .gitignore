@@ -1,5 +1,5 @@
+ca.crt
 /app/vendor/
-/app/assets/ca.crt
 /composer.lock
 /logs/
 /data/
