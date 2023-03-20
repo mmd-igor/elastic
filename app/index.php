@@ -125,7 +125,7 @@ require 'vendor/autoload.php';
     // движок эластика
     //$elastic = new Elastic();
     $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
-    //$works = new works($excode); todo
+    $works = new works($excode);
 
     ?>
     <h1>Ведомость объема работ (ВОР)</h1>
@@ -159,21 +159,26 @@ require 'vendor/autoload.php';
 
                 $item = $spec->getItem($row);
 
-                $ccnt = 0;
-                foreach ($item as $c) if (strlen($c) > 2) $ccnt++;
+                $ccnt = 0; $prima = [];
+                foreach ($item as $c) if (strlen($c) > 2) {
+                    $ccnt++;
+                    $prima[] = $c;
+                }
                 // счетчик строк с количеством значимых полей от 3
                 if ($ccnt > 2) $corecnt++;
                 elseif ($ccnt == 0) continue; // если нет ни одного поля - не работаем с такой строкой                
 
                 // есть хоть одна из колонок B,C,E со значением длиной более 3 символов?
-                $ok = false;
-                foreach (['B', 'C', 'E'] as $c) $ok = $ok || (array_key_exists($c, $item) && strlen(trim($item[$c])) > 3);
+                $ok = false; 
+                foreach (['B', 'C', 'E'] as $c) {
+                    if (array_key_exists($c, $item) && strlen(trim($item[$c])) > 2) {                        
+                        $ok = true; break;
+                    }
+                }
                 // это единственная колонка в строке?
                 if ($ok) $ok = $ccnt > 1;  
                 if (!$ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
-                    print('<tr class="table-primary"><td></td>');
-                    foreach ($header as $c => $h) printf('<td>%s</td>', (array_key_exists($c, $item) ? $item[$c] : ''));
-                    print('<td colspan="12"></td></tr>');
+                    printf('<tr class="table-primary"><td></td><td colspan="21">%s</td></tr>', implode(' ', $prima));
                     continue;
                 } else $cnt++; // общий счетчик строк спецификации, с которыми работаем
 
@@ -186,7 +191,7 @@ require 'vendor/autoload.php';
                 $material = @$elastic->getMaterial($item['E'], sprintf('%s %s', $item['C'], $item['D']), $item['B']);
                 $material_ok = $material && $material['_meta']['score'] >= MATERIAL_LEVEL_SUCCESS;
                 if ($material_ok) {
-                    $successcnt += 100;//50; todo:
+                    $successcnt += 50;
                 } // счетчик успешных распознаваний - 50 очков за материал
                 if ($greenonly && (!$material || ($material && $material['_meta']['score'] < MATERIAL_LEVEL_SUCCESS))) {
                     echo '<tr>' . $rowstr;
@@ -196,9 +201,15 @@ require 'vendor/autoload.php';
                 }
 
                 if ($material && (!$greenonly || $material_ok)) {
+                    $l = 'mcode';
+                    $mcode = (is_array($material) && array_key_exists($l, $material)) ? (is_array($material[$l]) ? $material[$l]['raw'] : $material[$l]) : '';
                     //$work = @$elastic->getWork2($material['vcode']['raw'], $item['B'], $excode);
-                    $work = null;//$works->getWork($material['mcode']['raw']); //todo
-                    if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0;
+                    $work = $works->getWork($mcode);
+                    //if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0; todo:
+                    if (is_array($work) && count($work) > 0) {
+                        if ($material_ok) $work['_meta']['score'] = WORK_LEVEL_SUCCESS;
+                        else $work['_meta']['score'] = WORK_LEVEL_SUCCESS -1;
+                    } 
                 } else {
                     $work = null;
                 }
@@ -215,7 +226,7 @@ require 'vendor/autoload.php';
                         else $c = 'success';
                         foreach (['excode', 'wcode'] as $l) $rowstr .= sprintf('<td class="table-%s" id="%s-%d">%s</td>', $c, $l, $cnt, (array_key_exists($l, $work) ? (is_array($work[$l]) ? $work[$l]['raw'] : $work[$l]) : ''));
                         if (array_key_exists('rows', $work) && count($work['rows']) > 1) {
-                            $rowstr .= sprintf('<td class="table-%s"><select name="works" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
+                            $rowstr .= sprintf('<td class="table-%s"><select class="wselect" name="works" data-rownum="%d" onchange="check_wcode(this);">', $c, $cnt);
                             foreach ($work['rows'] as $wr) {
                                 $rowstr .= sprintf('<option value="%s">%s</option>', $wr['wcode'], $wr['wname']);
                             }
