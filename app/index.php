@@ -16,7 +16,7 @@ require 'vendor/autoload.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-    <link href="/assets/styles.css?ver=<?=time()?>" rel="stylesheet">
+    <link href="/assets/styles.css?ver=<?= time() ?>" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
     <script>
         function saveToExcel() {
@@ -24,6 +24,16 @@ require 'vendor/autoload.php';
             for (const sel of selects) {
                 sel.parentElement.innerText = sel.selectedOptions[0].innerText;
             }
+
+            var divs = Array.from(document.getElementsByClassName('extinfo'));
+            for (const div of divs) {
+                // Удаление всех атрибутов
+                const attributes = div.attributes;
+                for (let i = attributes.length - 1; i >= 0; i--) {
+                    div.removeAttribute(attributes[i].name);
+                }
+            }
+
             let t = document.getElementById('mainTable');
             document.getElementById('tableForm').value = t.outerHTML;
         }
@@ -159,7 +169,8 @@ require 'vendor/autoload.php';
 
                 $item = $spec->getItem($row);
 
-                $ccnt = 0; $prima = [];
+                $ccnt = 0;
+                $prima = [];
                 foreach ($item as $c) if (strlen($c) > 2) {
                     $ccnt++;
                     $prima[] = $c;
@@ -169,14 +180,15 @@ require 'vendor/autoload.php';
                 elseif ($ccnt == 0) continue; // если нет ни одного поля - не работаем с такой строкой                
 
                 // есть хоть одна из колонок B,C,E со значением длиной более 3 символов?
-                $ok = false; 
+                $ok = false;
                 foreach (['B', 'C', 'E'] as $c) {
-                    if (array_key_exists($c, $item) && strlen(trim($item[$c])) > 2) {                        
-                        $ok = true; break;
+                    if (array_key_exists($c, $item) && strlen(trim($item[$c])) > 2) {
+                        $ok = true;
+                        break;
                     }
                 }
                 // это единственная колонка в строке?
-                if ($ok) $ok = $ccnt > 1;  
+                if ($ok) $ok = $ccnt > 1;
                 if (!$ok) { // с такими не работаем - просто копируем строку из спецификации, остальное - пусто и к следующей строке
                     printf('<tr class="table-primary"><td></td><td colspan="21">%s</td></tr>', implode(' ', $prima));
                     continue;
@@ -208,8 +220,8 @@ require 'vendor/autoload.php';
                     //if ($material_ok && $excode != '' && is_array($work)) $work['_meta']['score'] += 3.0; todo:
                     if (is_array($work) && count($work) > 0) {
                         if ($material_ok) $work['_meta']['score'] = WORK_LEVEL_SUCCESS;
-                        else $work['_meta']['score'] = WORK_LEVEL_SUCCESS -1;
-                    } 
+                        else $work['_meta']['score'] = WORK_LEVEL_SUCCESS - 1;
+                    }
                 } else {
                     $work = null;
                 }
@@ -242,11 +254,11 @@ require 'vendor/autoload.php';
                 //
                 if ($material) {
                     $s = $material['_meta']['score'];
-                    if ($s < MATERIAL_LEVEL_SUCCESS /2) $c = 'danger';
+                    if ($s < MATERIAL_LEVEL_SUCCESS / 2) $c = 'danger';
                     else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (is_array($material) && array_key_exists($l, $material) ? (is_array($material[$l]) ? $material[$l]['raw'] : $material[$l]) : ''));
-                    $notes[] = sprintf('<div title=\'%s\' onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']); 
+                    $notes[] = sprintf('<div class="extinfo" title=\'%s\' onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
                 } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //
