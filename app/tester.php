@@ -1,6 +1,12 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode($_GET);
+$re = '/\b(L|ду?|ø|dn|d)?\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
+$str = 'Вытяжная установка l=145 м3\\/час, Р=450 Па';
+
+preg_match_all($re, $str, $matches, PREG_SET_ORDER, 0);
+
+
+// Print the entire match result
+var_dump($matches);
 exit;
 
 include 'vendor/autoload.php';

@@ -27,7 +27,7 @@ class ElasticSearch
         preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);
         if (is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
             $size = (float)$matches[0][2];
-            $sz_pfx = $size = (float)$matches[0][1];
+            $sz_pfx = $matches[0][1];
         }
 
         $key = trim("$article $name");
