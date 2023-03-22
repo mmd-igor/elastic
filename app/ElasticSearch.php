@@ -20,6 +20,8 @@ class ElasticSearch
 
     public function getMaterial($brand, $article, $name)
     {
+        if (trim($name) == '') return null;
+
         $params = ['index' => $this->index, 'body' => ['size' => 1]];
         $re = '/\b(?:ду?|ø|dn|d)?\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
         preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);

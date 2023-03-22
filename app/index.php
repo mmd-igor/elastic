@@ -19,6 +19,40 @@ require 'vendor/autoload.php';
     <link href="/assets/styles.css?ver=<?= time() ?>" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
     <script>
+        function DebugQuery(sender) {
+            event.preventDefault();
+            let data = new FormData(sender);
+
+            fetch("/api/?" + new URLSearchParams(data).toString(), {
+                    "method": "GET"
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    function isObject(obj) {
+                        return typeof obj === "object" && obj !== null;
+                    }
+
+                    function printObject(obj) {
+                        let result = '';
+                        for (let [key, value] of Object.entries(obj)) {
+                            if (isObject(value)) result += printObject(value);
+                            else {
+                                if (String(value).indexOf('{') == 0) {value = `<pre>${value}</pre>`; console.log(value);}
+                                result += `<tr><td>${key}</td><td>${value}</td></tr>`;
+                            }
+                        }
+                        return result;
+                    }
+
+                    var res = '<table>';
+                    res += printObject(data);
+                    //res += printObject(data._meta, res);
+
+                    res += '</table>';
+                    document.getElementById('debug_result').innerHTML = res;
+                });
+        }
+
         function saveToExcel() {
             var selects = Array.from(document.getElementsByTagName('select'));
             for (const sel of selects) {
@@ -83,7 +117,7 @@ require 'vendor/autoload.php';
     } else {
         // upload html-form
     ?>
-        <div class="row" id="uploader">
+        <div class="row pb-5 pt-3 bg-light" id="uploader">
             <div class="d-flex justify-content-center">
                 <form enctype="multipart/form-data" action="/" method="POST">
                     <label for="formFile" class="form-label">Закачайте сюда файл спецификации</label>
@@ -102,6 +136,24 @@ require 'vendor/autoload.php';
                         <label class="form-check-label" for="greenonly">Только зеленые</label>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <hr />
+
+        <div class="row">
+            <div class="d-flex justify-content-center">
+                <form enctype="multipart/form-data" method="POST" name="debuger" id="debuger" onsubmit="DebugQuery(this);">
+                    <label for="form" class="form-label">Материал для поиска:</label>
+                    <div class="input-group mb-3">
+                        <input class="form-control" type="text" placeholder="Наименование" aria-label="" name="name">
+                        <input class="form-control" type="text" placeholder="Артикул" aria-label="" name="article">
+                        <input class="form-control" type="text" placeholder="Производитель" aria-label="" name="brand">
+                        <input type="submit" class="btn btn-outline-secondary" value="Отправить" name="btnDebug" />
+                    </div>
+                </form>
+            </div>
+            <div class="d-flex justify-content-center" id="debug_result">
             </div>
         </div>
 
