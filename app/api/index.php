@@ -8,7 +8,8 @@ header('Content-Type: application/json; charset=utf-8');
 require '../vendor/autoload.php';
 require_once '../config.php';
 
-function getParam($pname, $def = null) {
+function getParam($pname, $def = null)
+{
     return array_key_exists($pname, $_GET) ? $_GET[$pname] : $def;
 }
 
@@ -16,5 +17,14 @@ $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL
 
 $material = $elastic->getMaterial(getParam('brand'), getParam('article'), getParam('name'));
 
-echo $material ? json_encode($material, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '{"result": "not found"}';
-
+$fields = getParam('fields');
+if ($fields) {
+    $fields = explode(',', $fields);
+    if (count($fields) == 1) echo $material[$fields[0]];
+    else {
+        $res = [];
+        foreach($fields as $f) if (array_key_exists($f, $material)) $res[$f] = $material[$f];
+        echo json_encode($res, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
+} else
+    echo $material ? json_encode($material, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '{"result": "not found"}';
