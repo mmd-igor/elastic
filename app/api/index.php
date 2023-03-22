@@ -20,7 +20,7 @@ $material = $elastic->getMaterial(getParam('brand'), getParam('article'), getPar
 $fields = getParam('fields');
 if ($fields) {
     $fields = explode(',', $fields);
-    if (count($fields) == 1) echo $material[$fields[0]];
+    if (count($fields) == 1) echo array_key_exists($fields[0], $material) ? $material[$fields[0]] : sprintf('{"error":"unknown field: `%s`"}', $fields[0]);
     else {
         $res = [];
         foreach($fields as $f) if (array_key_exists($f, $material)) $res[$f] = $material[$f];

@@ -43,7 +43,10 @@ class ElasticSearch
         if (is_array($result) && array_key_exists('hits', $result) && $result['hits']['total']['value'] > 0) {
             $result['hits']['hits'][0]['_source']['_meta']['score'] = $result['hits']['hits'][0]['_score'];
             $result['hits']['hits'][0]['_source']['_meta']['method'] = 'M';
-            $result['hits']['hits'][0]['_source']['_meta']['_key'] = json_encode($params['body'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);;
+            $result['hits']['hits'][0]['_source']['_meta']['_key']['body'] = json_encode($params['body'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $result['hits']['hits'][0]['_source']['_meta']['_key']['name'] = $name;
+            $result['hits']['hits'][0]['_source']['_meta']['_key']['brand'] = $brand;
+            $result['hits']['hits'][0]['_source']['_meta']['_key']['article'] = $article;
 
             return $result['hits']['hits'][0]['_source'];
         } else {
