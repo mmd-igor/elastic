@@ -24,7 +24,7 @@ if ($fields) {
     else {
         $res = [];
         foreach($fields as $f) if (array_key_exists($f, $material)) $res[$f] = $material[$f];
-        echo json_encode($res, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        echo json_encode($res, JSON_UNESCAPED_UNICODE | (getParam('oneline', 0) == 1 ? 0 : JSON_PRETTY_PRINT));
     }
 } else
     echo $material ? json_encode($material, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : '{"result": "not found"}';
