@@ -28,7 +28,7 @@ class ElasticSearch
         if (is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
             $size = (float)$matches[0][2];
             $sz_pfx = $matches[0][1];
-            if ($sz_pfx != 'l') $sz_pfx = 'D';
+            if (strtoupper($sz_pfx) != 'L') $sz_pfx = 'D';
         }
 
         $key = trim("$article $name");
