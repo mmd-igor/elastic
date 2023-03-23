@@ -9,6 +9,7 @@ ca.crt
 /app/newref/*
 !/app/newref/*.php
 !/app/newref/*.sql
+!/app/newref/*.csv
 .DS_Store
 config.php
 array.php
