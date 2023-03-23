@@ -1,3 +1,10 @@
+<?php
+
+error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+$cli_mode = php_sapi_name() == 'cli';
+
+if (!$cli_mode) : ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,6 +18,7 @@
 <body>
     <pre>
 <?php
+endif;
 
 //print_r(explode('.', 'S17.02-33.222.01-D15'));exit;
 /*
@@ -31,7 +39,7 @@ create table if not exists mgroups (
     name varchar(128)
 );
 create table if not exists materials (
-    code varchar(32) primary key, 
+    code varchar(50) primary key, 
     name varchar(200), mgroup varchar(16),
     FOREIGN KEY (mgroup) REFERENCES mgroups(code)
 );
@@ -46,17 +54,29 @@ create table if not exists works (
     FOREIGN KEY (wclass) REFERENCES wclasses(code)
 );
 create table material_work(
-    mcode varchar(32),
+    mcode varchar(50),
     wcode varchar(32),
     primary key(mcode, wcode),
     foreign key (mcode) references materials(code),
     foreign key (wcode) references works(code)
 );
 
+ALTER TABLE materials MODIFY COLUMN code varchar(50);
+ALTER TABLE material_work MODIFY COLUMN mcode varchar(50);
+
 mysqldump -u root -p mw_db > mw_db.sql
 
 eof;
 */
+
+$inputFileName = isset($_GET['file']) ?  __DIR__ . '/' . $_GET['file'] . '.csv' : null;
+if (!$inputFileName && $argc > 1) {
+    $inputFileName = $argv[1];    
+}
+if (!$inputFileName || !file_exists($inputFileName)) {
+    echo "either file not exists or file not defind";
+    exit;
+}
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $mysql = new mysqli("mysql", "mw_user", "dasljk3JK", "mw_db");
@@ -99,9 +119,6 @@ foreach ($tasks as $tbl => &$task) {
     }
 }
 
-
-$inputFileName = __DIR__ . '/matworks.csv';
-
 $file = fopen($inputFileName, "r");
 $array = [];
 if ($file) {
@@ -109,6 +126,7 @@ if ($file) {
     while (($buffer = fgetcsv($file, null, ';')) !== false) {
         $cnt++;
         if (!ProcessLine($cnt, $buffer)) break;
+        if ($cli_mode && ($cnt % 1000 == 0)) fwrite(STDOUT, "$cnt records was processed\n");
     }
 }
 fclose($file);
@@ -149,9 +167,9 @@ function ProcessLine(int $rownum, array $arr): bool
     }
     return true;
 }
+if (!$cli_mode) : ?>
 ?>
 </pre>
-
 </body>
-
 </html>
+<?php endif;
