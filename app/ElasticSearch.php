@@ -49,6 +49,12 @@ class ElasticSearch
         }
         if (count($sizes) > 0) {
             $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['size' => $sizes]];
+            $params['body']['query']['bool']['should'][] = (object)['match' => ['material' => 'прямоугольный фасонный']];
+        }
+
+        $re = 'Воздуховод';
+        if (stripos($name, $re) !== false) {
+            $params['body']['query']['bool']['should'][] = (object)['match' => ['group' => $re]];
         }
 
         if (!empty($brand))  $params['body']['query']['bool']['should'][] = (object)['multi_match' => (object)['query' => $brand, 'fields' => ['brand', 'group', 'razdel']]];
@@ -59,7 +65,7 @@ class ElasticSearch
         if (is_array($result) && array_key_exists('hits', $result) && $result['hits']['total']['value'] > 0) {
             $result['hits']['hits'][0]['_source']['_meta']['score'] = $result['hits']['hits'][0]['_score'];
             $result['hits']['hits'][0]['_source']['_meta']['method'] = 'M';
-            $result['hits']['hits'][0]['_source']['_key'] = json_encode($params['body'], JSON_UNESCAPED_UNICODE);
+            $result['hits']['hits'][0]['_source']['_key'] = json_encode($params['body'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
             return $result['hits']['hits'][0]['_source'];
         } else {
