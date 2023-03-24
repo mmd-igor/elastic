@@ -1,4 +1,17 @@
 <?php
+$sizes = [];
+// отлов вида 12x23[x45]
+$re = '/\d+(?:[,\.]\d+)*[xх]\d+(?:[,\.]\d+)*(?:[xх]\d+(?:[,\.]\d+)*)?/ui';
+if (preg_match_all($re, 'ППгнг(А)-FRHF 1х120', $matches, PREG_SET_ORDER, 0) !== false) {
+    foreach ($matches as $m) {
+        $sizes[] = $m[0];
+    }
+}
+var_dump($sizes);
+exit;
+
+
+
 $re = '/\b(L|ду?|ø|dn|d)?\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
 $str = 'Вытяжная установка l=145 м3\\/час, Р=450 Па';
 

@@ -310,7 +310,7 @@ require 'vendor/autoload.php';
                     else if ($s < MATERIAL_LEVEL_SUCCESS) $c = 'warning';
                     else $c = 'success';
                     foreach (['gcode', 'group', 'mcode', 'material'] as $l) $rowstr .= sprintf('<td class="table-%s">%s</td>', $c, (is_array($material) && array_key_exists($l, $material) ? (is_array($material[$l]) ? $material[$l]['raw'] : $material[$l]) : ''));
-                    $notes[] = sprintf('<div class="extinfo" title=\'%s\' onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_meta']['_key'], $material['_meta']['score'], $material['_meta']['method']);
+                    $notes[] = sprintf('<div class="extinfo" title=\'%s\' onclick="Copy2Clipboard(this);">m%.0f/%s</div>', $material['_key'], $material['_meta']['score'], $material['_meta']['method']);
                 } else
                     $rowstr .= '<td colspan="4" class="table-danger">материал не найден</td>';
                 //

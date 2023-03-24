@@ -1,6 +1,7 @@
 <?php
-
+// /\b(l|толщ[инаой]*|ду?|ø|dn|d|-)?\s*[=\s]?\s*(\d+\/?\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui
 namespace Level\VOR;
+
 use Elastic\Elasticsearch\ClientBuilder;
 
 class ElasticSearch
@@ -21,22 +22,35 @@ class ElasticSearch
     public function getMaterial($brand, $article, $name)
     {
         if (trim($name) == '') return null;
-
         $params = ['index' => $this->index, 'body' => ['size' => 1]];
-        $re = '/\b(l|толщ[инаой]*|ду?|ø|dn|d)?\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
-        preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0);
-        if (is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
+
+        $sizes = [];
+        // отлов вида 12x23[x45]
+        $re = '/\d+(?:[,\.]\d+)*[xх]\d+(?:[,\.]\d+)*(?:[xх]\d+(?:[,\.]\d+)*)?/ui';
+        if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false) {
+            foreach ($matches as $m) {
+                $sizes[] = $m[0];
+            }
+        }
+        $re = '/\b(l|толщ[инаой]*|ду?|ø|dn|d|-)?\s*[=\s]?\s*(\d+\/?\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
+        
+        if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false && is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
             $size = (float)$matches[0][2];
             $sz_pfx = $matches[0][1];
             if (strtoupper($sz_pfx) != 'L') $sz_pfx = 'D';
-        }
+            $sizes[] = (string)$size;
+        }        
 
         $key = trim("$article $name");
         if (!empty($name)) $params['body']['query']['bool']['must'] = (object)['multi_match' => (object)['query' => "$key", 'fields' => ['material', 'description', 'razdel', 'group', 'view']]];
-        if (!empty($size))  {
-            $params['body']['query']['bool']['should'][] = (object)['match' => ['size' => (string)$size]];
+        if (!empty($size)) {
+            //$params['body']['query']['bool']['should'][] = (object)['match' => ['size' => (string)$size]];
             $params['body']['query']['bool']['should'][] = (object)['match' => ['scode' => $sz_pfx . $size]];
         }
+        if (count($sizes) > 0) {
+            $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['size' => $sizes]];
+        }
+
         if (!empty($brand))  $params['body']['query']['bool']['should'][] = (object)['multi_match' => (object)['query' => $brand, 'fields' => ['brand', 'group', 'razdel']]];
 
         $result = $this->client->search($params);
@@ -53,9 +67,10 @@ class ElasticSearch
         }
     }
 
-    public function newDocument(object $doc, $id = null) {
+    public function newDocument(object $doc, $id = null)
+    {
         $params = ['index' => $this->index, 'body' => json_encode($doc)];
-        if ($id) $params['id'] = $id; 
+        if ($id) $params['id'] = $id;
         $this->client->index($params);
     }
 }
