@@ -1,5 +1,5 @@
 # Для начала указываем исходный образ, он будет использован как основа
-FROM php:8.1-fpm
+FROM php:7.4-fpm
 # Необязательная строка с указанием автора образа
 MAINTAINER mmd <mmd.igor@gmail.com>
 
@@ -16,11 +16,12 @@ RUN apt-get update && apt-get install -y \
         zlib1g-dev \
         libpng-dev \
         libzip-dev \
-        libmagickwand-dev --no-install-recommends \
+#        libmagickwand-dev --no-install-recommends \
         && rm -rf /var/lib/apt/lists/* \
-        && mkdir -p /usr/src/php/ext/imagick \
-        && curl -fsSL https://github.com/Imagick/imagick/archive/06116aa24b76edaf6b1693198f79e6c295eda8a9.tar.gz | tar xvz -C "/usr/src/php/ext/imagick" --strip 1 \
-        && docker-php-ext-install -j$(nproc) curl xml gd opcache mysqli pdo_mysql zip imagick
+#        && mkdir -p /usr/src/php/ext/imagick \
+#        && curl -fsSL https://github.com/Imagick/imagick/archive/06116aa24b76edaf6b1693198f79e6c295eda8a9.tar.gz | tar xvz -C "/usr/src/php/ext/imagick" --strip 1 \
+        && docker-php-ext-install -j$(nproc) curl xml gd opcache mysqli pdo_mysql zip 
+#imagick
     
 # Куда же без composer'а.
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

@@ -8,6 +8,7 @@ class ElasticSearch
 {
     private $client = null;
     private $index = 'materials_v5';
+    private $morphy = null;
 
     function __construct(string $apikey, string $index)
     {
@@ -17,6 +18,7 @@ class ElasticSearch
             ->setCABundle(__DIR__ . '/assets/ca.crt')
             ->build();
         $this->index = $index;
+        $this->morphy = new Morphy();
     }
 
     public function getMaterial($brand, $article, $name)
@@ -29,36 +31,61 @@ class ElasticSearch
         $re = '/\d+(?:[,\.]\d+)*[xх]\d+(?:[,\.]\d+)*(?:[xх]\d+(?:[,\.]\d+)*)?/ui';
         if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false) {
             foreach ($matches as $m) {
-                $sizes[] = $m[0];
+                $sizes[0][] = $m[0];
             }
         }
-        $re = '/\b(l|толщ[инаой]*|ду?|ø|dn|d|-)?\s*[=\s]?\s*(\d+\/?\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
-        
-        if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false && is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
-            $size = (float)$matches[0][2];
-            $sz_pfx = $matches[0][1];
-            if (strtoupper($sz_pfx) != 'L') $sz_pfx = 'D';
-            $sizes[] = (string)$size;
-        }        
-
-        $key = trim("$article $name");
-        if (!empty($name)) $params['body']['query']['bool']['must'] = (object)['multi_match' => (object)['query' => "$key", 'fields' => ['material', 'description', 'razdel', 'group', 'view']]];
-        if (!empty($size)) {
-            //$params['body']['query']['bool']['should'][] = (object)['match' => ['size' => (string)$size]];
-            $params['body']['query']['bool']['should'][] = (object)['match' => ['scode' => $sz_pfx . $size]];
-        }
-        if (count($sizes) > 0) {
-            $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['size' => $sizes]];
-            $params['body']['query']['bool']['should'][] = (object)['match' => ['material' => 'прямоугольный фасонный']];
-        }
-
+        // только для воздуховодов
         $re = 'Воздуховод';
+        if (stripos($name, $re) !== false) {
+            $params['body']['query']['bool']['should'][] = (object)['match' => ['group' => $re]];
+            if (count($sizes) > 0) $params['body']['query']['bool']['should'][] = (object)['match' => ['material' => 'прямоугольный фасонный']];
+        }
+        // только для труб
+        $re = 'Труба';
         if (stripos($name, $re) !== false) {
             $params['body']['query']['bool']['should'][] = (object)['match' => ['group' => $re]];
         }
 
-        if (!empty($brand))  $params['body']['query']['bool']['should'][] = (object)['multi_match' => (object)['query' => $brand, 'fields' => ['brand', 'group', 'razdel']]];
+        $re = '/\b(l|толщ[инаой]*|Ф|ду?|ø|dn|d|-|днар\.?|дн\.?)?\s*[=\s]?\s*(\d+(?:[,\.]\d+)*\/?\d+(?:[,\.]\d+)*)\s*(?:\b|м{2}|m{2}|x|х)/ui';        
+        if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false && is_array($matches) && is_array($matches[0]) && count($matches[0]) == 3) {
+            foreach ($matches as $m) {
+                $sizes[0][] = (string)floatval($m[2]);
+                if ($m[1] != '') $sizes[1][] = (strtoupper($m[1]) == 'L' ? 'L' : 'D') . floatval($m[2]);
+            }
+        }   
 
+        if (count($sizes)) {
+            if (count($sizes[0]) > 0) {
+                $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['size' => $sizes[0]]];
+            }
+            if (count($sizes[1]) > 0) {
+                $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['scode' => $sizes[1]]];            
+            }
+        }        
+
+        //$re = '/\bТруб(?:а|ы|ка|ки)|Заглушка|Крестовина|Муфта|Отвод\s+\d+°\s?|Патрубок|Переход|Ревизия|Тройник|Колено\s+\d+°\s?|Фланец|Адаптер|Устройство|Клапан|Воронка|Трап|Комплект\s+электрообогрева|Металлоконструкции|Соединитель|Хомут|Цилиндры?\b/ui';
+        //$re = '/\bТруб(?:а|ы|ка|ки)|Заглушка|Крестовина|Муфта|Отвод|Патрубок|Переход|Ревизия|Тройник|Колено|Фланец|Адаптер|Устройство|Клапан|Воронка|Трап|Комплект|Металлоконструкции|Гильза|Соединитель|Хомут|РаДиатор|конвектор|Цилиндры?\b/ui';
+        //if (false !== preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) && count($matches) == 1) {
+            //$params['body']['query']['bool']['must'][] = (object)['match_phrase' => (object)['material' => $matches[0][0]]];
+        //}
+
+        $key = trim("$article $name");
+        if (!empty($name)) {
+            $params['body']['query']['bool']['must'][] = (object)['multi_match' => (object)['query' => "$key", 'fields' => ['material', 'description', 'razdel']]];//, 'group', 'view']]];
+            $subjects = $this->morphy->getSubject($name);
+            if (count($subjects) > 0) {
+                $subjects = implode(' ', $subjects);
+                if (!empty($name)) $params['body']['query']['bool']['should'][] = (object)['multi_match' => (object)['query' => "$subjects", 'fields' => ['group^2', 'view^4']]];
+            }        
+        }
+
+        //if (!empty($size)) {
+            //$params['body']['query']['bool']['should'][] = (object)['match' => ['size' => (string)$size]];
+          //  $params['body']['query']['bool']['should'][] = (object)['match' => ['scode' => $sz_pfx . $size]];
+        //}
+
+        if (!empty($brand))  $params['body']['query']['bool']['should'][] = (object)['multi_match' => (object)['query' => $brand, 'fields' => ['brand^2', 'group', 'razdel']]];
+        
         $result = $this->client->search($params);
         if ($result) $result = $result->asArray();
 

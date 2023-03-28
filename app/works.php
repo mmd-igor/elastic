@@ -31,7 +31,7 @@ class works
             $this->stmt->bind_param('ss', $this->m_code, $this->m_excode);
     }
 
-    public function getWork(string $mcode, string $excode = ''): array|false
+    public function getWork(string $mcode, string $excode = '')
     {
         $arr = [];
         $this->m_code = $mcode;

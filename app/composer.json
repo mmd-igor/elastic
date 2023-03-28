@@ -3,11 +3,15 @@
         "phpoffice/phpspreadsheet": "^1.25",
         "elastic/enterprise-search": "^8.5",
         "guzzlehttp/guzzle": "^7.0",
-        "elasticsearch/elasticsearch": "^8.6"
+        "elasticsearch/elasticsearch": "^8.6",
+        "cijic/phpmorphy": "^0.3.1"
     },
     "config": {
         "platform": {
-            "php": "8.1"
+            "php": "7.4"
+        },
+        "allow-plugins": {
+            "php-http/discovery": true
         }
     },
     "autoload": {
