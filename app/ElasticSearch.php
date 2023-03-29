@@ -92,7 +92,7 @@ class ElasticSearch
         if (is_array($result) && array_key_exists('hits', $result) && $result['hits']['total']['value'] > 0) {
             $result['hits']['hits'][0]['_source']['_meta']['score'] = $result['hits']['hits'][0]['_score'];
             $result['hits']['hits'][0]['_source']['_meta']['method'] = 'M';
-            $result['hits']['hits'][0]['_source']['_key'] = json_encode($params['body'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $result['hits']['hits'][0]['_source']['_key'] = json_encode($params['body'], JSON_UNESCAPED_UNICODE | (isset($_GET['oneline']) && $_GET['oneline'] == '1' ? JSON_PRETTY_PRINT : 0));
 
             return $result['hits']['hits'][0]['_source'];
         } else {
