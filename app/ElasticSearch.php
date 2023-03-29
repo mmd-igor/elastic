@@ -26,10 +26,12 @@ class ElasticSearch
         if (trim($name) == '') return null;
         $params = ['index' => $this->index, 'body' => ['size' => 1]];
 
+        $key = trim("$article $name");
+
         $sizes = [];
         // отлов вида 12x23[x45]
         $re = '/\d+(?:[,\.]\d+)*[xх]\d+(?:[,\.]\d+)*(?:[xх]\d+(?:[,\.]\d+)*)?/ui';
-        if (preg_match_all($re, $name, $matches, PREG_SET_ORDER, 0) !== false) {
+        if (preg_match_all($re, $key, $matches, PREG_SET_ORDER, 0) !== false) {
             foreach ($matches as $m) {
                 $sizes[0][] = $m[0];
             }
@@ -69,7 +71,6 @@ class ElasticSearch
         //$params['body']['query']['bool']['must'][] = (object)['match_phrase' => (object)['material' => $matches[0][0]]];
         //}
 
-        $key = trim("$article $name");
         if (!empty($name)) {
             $params['body']['query']['bool']['must'][] = (object)['multi_match' => (object)['query' => "$key", 'fields' => ['material', 'description', 'razdel']]]; //, 'group', 'view']]];
             $subjects = $this->morphy->getSubject($name);
