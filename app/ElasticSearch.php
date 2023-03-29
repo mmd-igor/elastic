@@ -34,6 +34,11 @@ class ElasticSearch
         if (preg_match_all($re, $key, $matches, PREG_SET_ORDER, 0) !== false) {
             foreach ($matches as $m) {
                 $sizes[0][] = $m[0];
+                $c = 0;
+                foreach(['x' => 'х', 'х' => 'x'] as $k => $v) {
+                    $s = str_replace($k, $v, $m[0], $c); 
+                    if ($c != 0) $sizes[0][] = $s;
+                }
             }
         }
         // только для воздуховодов
