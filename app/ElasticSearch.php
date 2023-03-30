@@ -35,8 +35,8 @@ class ElasticSearch
             foreach ($matches as $m) {
                 $sizes[0][] = $m[0];
                 $c = 0;
-                foreach(['x' => 'х', 'х' => 'x'] as $k => $v) {
-                    $s = str_replace($k, $v, $m[0], $c); 
+                foreach (['x' => 'х', 'х' => 'x'] as $k => $v) {
+                    $s = str_replace($k, $v, $m[0], $c);
                     if ($c != 0) $sizes[0][] = $s;
                 }
             }
@@ -109,7 +109,11 @@ class ElasticSearch
     public function newDocument(object $doc, $id = null)
     {
         $params = ['index' => $this->index, 'body' => json_encode($doc)];
-        if ($id) $params['id'] = $id;
+        if ($id) {
+            $params['id'] = $id;
+            $params['op_type'] = 'create';
+        }
         $this->client->index($params);
+        return true;
     }
 }
