@@ -7,14 +7,6 @@ namespace Level\VOR;
 require_once "vendor/autoload.php";
 require_once "config.php";
 
-function log($msg) {
-  fwrite(STDOUT, $msg . PHP_EOL);
-}
-
-function logf($msg, ...$params) {
-  log(sprintf($msg, ...$params));
-}
-
 $materials = json_decode(file_get_contents('data/materials.json'));
 logf("%s materials loaded", count($materials));
 

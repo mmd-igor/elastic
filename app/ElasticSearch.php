@@ -30,13 +30,14 @@ class ElasticSearch
 
         $sizes = [];
         // отлов вида 12x23[x45]
-        $re = '/\d+(?:[,\.]\d+)*[xх]\d+(?:[,\.]\d+)*(?:[xх]\d+(?:[,\.]\d+)*)?/ui';
+        $re = '/\d+(?:[,\.]\d+)*\s*[xх]\s*\d+(?:[,\.]\d+)*(?:\s*[xх]\s*\d+(?:[,\.]\d+)*)?/ui';
         if (preg_match_all($re, $key, $matches, PREG_SET_ORDER, 0) !== false) {
             foreach ($matches as $m) {
-                $sizes[0][] = $m[0];
+                $m0 = str_replace(' ', '', $m[0]);
+                $sizes[0][] = $m0;
                 $c = 0;
                 foreach (['x' => 'х', 'х' => 'x'] as $k => $v) {
-                    $s = str_replace($k, $v, $m[0], $c);
+                    $s = str_replace($k, $v, $m0, $c);
                     if ($c != 0) $sizes[0][] = $s;
                 }
             }
@@ -45,7 +46,7 @@ class ElasticSearch
         //$re = 'Воздуховод';
         //if (stripos($name, $re) !== false) {
         //    $params['body']['query']['bool']['should'][] = (object)['match' => ['group' => $re]];
-        if (count($sizes[0]) > 0) $params['body']['query']['bool']['should'][] = (object)['match' => ['material' => 'прямоугольный']];
+        if (is_array($sizes[0]) && count($sizes[0]) > 0) $params['body']['query']['bool']['should'][] = (object)['match' => ['material' => 'прямоугольный']];
         //}
         // только для труб
         $re = 'Труба';
@@ -65,7 +66,7 @@ class ElasticSearch
             if (count($sizes[0]) > 0) {
                 $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['size' => $sizes[0]]];
             }
-            if (count($sizes[1]) > 0) {
+            if (is_array($sizes[1]) && count($sizes[1]) > 0) {
                 $params['body']['query']['bool']['should'][] = (object)['terms' => (object)['scode' => $sizes[1]]];
             }
         }
