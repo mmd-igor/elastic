@@ -58,6 +58,8 @@ services:
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
       - esdata01:/usr/share/elasticsearch/data
+      - ./esconfig/analysis:/usr/share/elasticsearch/config/analysis
+      - ./esconfig/hunspell:/usr/share/elasticsearch/config/hunspell      
     ports:
       - ${ES_PORT}:9200
     environment:
@@ -178,15 +180,18 @@ services:
     # монтируем директорию с проектами
     volumes:
       - ./app:/var/www
+      - certs:/certs
     environment:
       - ELASTIC_APPSEARCH_TOKEN=search-4xvgkedtbbfdna6svwxn1j1k
   mysql:
-    image: mariadb:latest
-    restart: 'always'
+    image: mariadb:latest    
+    #restart: 'always'
     volumes: 
-      - "./data:/var/lib/mysql"      
+      - ./data:/var/lib/mysql
+      #- dbdata:/var/lib/mysql
+      #- ./mysql/initdb.d:/docker-entrypoint-initdb.d 
     environment:
-      MYSQL_ROOT_PASSWORD: "dasljk3JK"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: mw_db
       MYSQL_USER: mw_user
       MYSQL_PASSWORD: dasljk3JK
@@ -199,3 +204,5 @@ volumes:
     driver: local
   kibanadata:
     driver: local
+#  dbdata:
+#    driver: local

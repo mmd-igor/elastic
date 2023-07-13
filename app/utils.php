@@ -18,3 +18,4 @@ function getParam($pname, $def = null)
 {
     return array_key_exists($pname, $_GET) ? $_GET[$pname] : $def;
 }
+

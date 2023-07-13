@@ -1,4 +1,5 @@
 <?php
+
 namespace Level\VOR;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -18,17 +19,21 @@ function array_merge_grow(array $a1, array $a2): array
 
 class Specification
 {
+    private $spreadsheet = null;
     public $items = [];
+
 
     function __destruct()
     {
         unset($this->items);
+        unset($this->spreadsheet);
     }
 
     private function checkState($inrow, $row, $idx): bool
     {
-        
-        $stop = count($row) == 1; $idx++;
+
+        $stop = count($row) == 1;
+        $idx++;
         if ($stop && $idx < count($this->items)) $stop = array_key_exists('A', $this->getItem($idx));
         return array_key_exists('A', $row) != $inrow && ($stop == false);
         /*
@@ -93,9 +98,25 @@ class Specification
 
         $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
         $reader->setReadDataOnly(TRUE);
-        $spreadsheet = $reader->load($fname);
 
-        $worksheet = $spreadsheet->getActiveSheet();
+        $this->spreadsheet = $reader->load($fname);
+        $this->items = $this->ParseSheet();
+
+        unset($reader);
+    }
+
+    private function ParseSheet($sheetNum = -1): array
+    {
+        if ($sheetNum < 0)
+            $worksheet = $this->spreadsheet->getActiveSheet();
+        else {
+            if ($sheetNum >= $this->spreadsheet->GetSheetCount())
+                return [];
+            else
+                $worksheet = $this->spreadsheet->getSheet($sheetNum);
+        }
+
+        $result = [];
 
         // Get the highest row number and column letter referenced in the worksheet
         $highestRow = $worksheet->getHighestRow(); //
@@ -107,7 +128,7 @@ class Specification
             //if ($row == 1) $arr = []; else $arr['corecnt'] = 0;
             $arr = [];
             for ($col = 'A'; $col != $highestColumn; ++$col) {
-                $value = $worksheet->getCell($col . $row)->getValue();
+                $value = $worksheet->getCell($col . $row)->getCalculatedValue();//getValue();
                 if ($value != null) {
                     $value = trim($value);
                     if ($value !== '') {
@@ -116,11 +137,22 @@ class Specification
                     }
                 }
             }
-            if (count($arr) > 0) $this->items[] = $arr;
+            if (count($arr) > 0) $result[] = $arr;
         }
         unset($worksheet);
-        unset($spreadsheet);
-        unset($reader);
+        unset($arr);
+
+        return $result;
+    }
+
+    public function ParseAllSheets(): array
+    {
+        $res = [];
+        for ($i = 0; $i < $this->spreadsheet->getSheetCount(); $i++)
+        {
+            $res = array_merge($res, $this->ParseSheet($i));
+            return $res;            
+        }
     }
 
     public function dump()
@@ -140,8 +172,14 @@ class Specification
         if (count($this->items) >= $idx) return $this->items[$idx];
         else return [];
     }
+
     public function getHeader(): array
     {
         return $this->getItem(0);
+    }
+
+    public function getItems(): array
+    {
+        return $this->items;
     }
 }

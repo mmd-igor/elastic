@@ -5,6 +5,8 @@ namespace Level\VOR;
 require 'vendor/autoload.php';
 echo '<pre>';
 
+$h = fopen('/certs/ca/ca.crt', 'r');
+
 // Создаем экземпляр объекта PhpMorphy
 $morphy = new Morphy();
 
@@ -37,7 +39,8 @@ var_dump($morphy->getGramInfo($text));
         var_dump($sizes);
         exit;
 
-
+        find /certs -type f -exec chmod 644 {} \;
+        find /certs -type d -exec chmod 755 {} \;
 
         $re = '/\b(L|ду?|ø|dn|d)?\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2}|x|х)/ui';
         $str = 'Вытяжная установка l=145 м3\\/час, Р=450 Па';

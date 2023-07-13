@@ -1,7 +1,7 @@
 <?php
 namespace Level\VOR;
 
-error_reporting(0);
+//error_reporting(0);
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -11,6 +11,12 @@ require_once '../config.php';
 $elastic = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, ES_INDEX_MATERIAL);
 
 $material = $elastic->getMaterial(getParam('brand'), getParam('article'), getParam('name'));
+if (is_array($material)) {
+    if (array_key_exists('_key', $material)) 
+        $material['_key'] = json_decode($material['_key']);
+    if (array_key_exists('_meta', $material)) 
+        $material['score'] = $material['_meta']['score'] ?? 0;
+}
 
 $fields = getParam('fields');
 if ($fields) {

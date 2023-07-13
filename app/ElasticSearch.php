@@ -15,7 +15,7 @@ class ElasticSearch
         $this->client = ClientBuilder::create()
             ->setHosts(['https://es01:9200'])
             ->setApiKey($apikey)
-            ->setCABundle(__DIR__ . '/assets/ca.crt')
+            ->setCABundle('/certs/ca/ca.crt') # it must be mount with container
             ->build();
         $this->index = $index;
         $this->morphy = new Morphy();
@@ -112,7 +112,8 @@ class ElasticSearch
         $params = ['index' => $this->index, 'body' => json_encode($doc)];
         if ($id) {
             $params['id'] = $id;
-            $params['op_type'] = 'create';
+            //$params['op_type'] = 'create';
+            //$params['version_type'] = 'external';
         }
         $this->client->index($params);
         return true;

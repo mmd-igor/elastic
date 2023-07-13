@@ -1,0 +1,93 @@
+//DELETE materials_v6
+PUT materials_v6
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "rus_analyzer": {
+          "tokenizer": "my_tokenizer",
+          "filter": [
+            "lowercase",
+            "replace",
+            "russian_stop",
+            "rus_analyzer_filter",
+            "synonyms"
+          ]
+        },
+        "exact": {
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase"
+          ]
+        }
+      },
+      "tokenizer": {
+        "my_tokenizer": {
+          "type": "pattern",
+          "pattern": """[\W&&[^=]]+(?!mm|мм)""",
+          "flags": "CASE_INSENSITIVE|UNICODE_CASE|UNICODE_CHARACTER_CLASS",
+          "group": -1
+        }
+      },
+      "filter": {
+        "rus_analyzer_filter": {
+          "type": "hunspell",
+          "locale": "ru_RU",
+          "dedup": true
+        },
+        "synonyms": {
+          "type": "synonym",
+          "synonyms_path": "analysis/synonym.txt"
+        },
+        "russian_stop": {
+          "type": "stop",
+          "stopwords": "_russian_"
+        },
+        "replace": {
+          "type": "pattern_replace",
+          "pattern": """\b(?:ду?|ø|dn|d)\s*[=\s]?\s*(\d+)\s*(?:\b|м{2}|m{2})""",
+          "replacement": "dn$1",
+          "flags": "CASE_INSENSITIVE|UNICODE_CASE|UNICODE_CHARACTER_CLASS"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "mcode": {
+        "type": "keyword"
+      },
+      "razdel": {
+        "type": "text",
+        "analyzer": "rus_analyzer"
+      },
+      "group": {
+        "type": "text",
+        "analyzer": "rus_analyzer"
+      },
+      "view": {
+        "type": "text",
+        "analyzer": "rus_analyzer"
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "rus_analyzer"
+      },
+      "material": {
+        "type": "text",
+        "analyzer": "rus_analyzer"
+      }
+    },
+    "dynamic_templates": [
+      {
+        "strings_as_text": {
+          "match_mapping_type": "string",
+          "mapping": {
+            "type": "text",
+            "analyzer": "keyword"
+          }
+        }
+      }
+    ]
+  }
+}

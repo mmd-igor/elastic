@@ -6,11 +6,12 @@ namespace Level\VOR;
 
 require_once "vendor/autoload.php";
 require_once "config.php";
+$file = ($argc > 1) && file_exists($argv[1]) ? $argv[1] : 'data/materials.json';
 
-$materials = json_decode(file_get_contents('data/materials.json'));
+$materials = json_decode(file_get_contents($file));
 logf("%s materials loaded", count($materials));
 
-$es = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, 'materials_v6');
+$es = new \Level\VOR\ElasticSearch(ELASTIC_SEARCH_APIKEY, 'materials_v7');
 $morphy = new Morphy();
 
 // отлов дубликатов, делаем merge свойств, результат - в $arr
@@ -38,3 +39,5 @@ foreach ($arr as $m) {
 }
 
 log("done.");
+
+// php upload-materials.php result.json
